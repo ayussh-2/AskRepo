@@ -1,0 +1,40 @@
+{
+  "file_path": "test_go.go",
+  "language": "go",
+  "symbols": [
+    {
+      "name": "Server",
+      "type": "type_declaration",
+      "start_line": 5,
+      "end_line": 7,
+      "language": "go",
+      "parent": "",
+      "docstring": "Server represents our HTTP server. It handles routing.",
+      "source": "type Server struct {\n\tport int\n}",
+      "token_count": 8
+    },
+    {
+      "name": "Start",
+      "type": "method_declaration",
+      "start_line": 11,
+      "end_line": 13,
+      "language": "go",
+      "parent": "Server",
+      "docstring": "Start begins listening on the configured port. Notice there is no space between this comment and the func!",
+      "source": "func (s *Server) Start() error {\n\treturn nil\n}",
+      "token_count": 14
+    },
+    {
+      "name": "topLevelFunc",
+      "type": "function_declaration",
+      "start_line": 16,
+      "end_line": 16,
+      "language": "go",
+      "parent": "",
+      "docstring": "topLevelFunc is an orphan function.",
+      "source": "func topLevelFunc() {}",
+      "token_count": 5
+    }
+  ],
+  "orphan_lines_count": 9
+}

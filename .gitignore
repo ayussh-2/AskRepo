@@ -6,3 +6,7 @@
 repos/
 
 __pycache__
+
+temp/
+
+error/
