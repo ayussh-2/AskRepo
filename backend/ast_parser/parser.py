@@ -8,6 +8,8 @@ from typing import Optional
 import warnings
 import json
 
+from utils.constants import ENCODER_MODEL
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 import tiktoken
@@ -97,7 +99,7 @@ def parse_directory(
 
         result = parse_file(str(file_path))
         if result:
-            result.file_path = str(file_path.relative_to(root))
+            result.file_path = str(file_path.relative_to(root)).replace("\\", "/")
             results.append(result)
 
     return results
@@ -109,8 +111,7 @@ def save_ast_results_to_json(results: list, dir: str | Path) -> None:
     """
     ast_output_dir = Path(dir) / "tree_sitter_results"
     ast_output_dir.mkdir(parents=True, exist_ok=True)
-    # cl100k_base is the standard for OpenAI embeddings
-    encoder = tiktoken.get_encoding("cl100k_base")
+    encoder = tiktoken.get_encoding(ENCODER_MODEL)
     for result in results:
         # Create a safe filename by replacing path separators with underscores
         safe_name = result.file_path.replace("/", "_").replace("\\", "_") + ".json"
@@ -132,7 +133,7 @@ def save_ast_results_to_json(results: list, dir: str | Path) -> None:
         ]
 
         output_data = {
-            "file_path": result.file_path,
+            "file_path": result.file_path.replace("\\", "/"),
             "language": result.language,
             "symbols": symbols_data,
             "orphan_lines_count": len(result.orphan_src.splitlines()) if result.orphan_src else 0,

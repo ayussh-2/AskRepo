@@ -17,7 +17,7 @@ class Symbol:
     end_line:    int        # 1-indexed line number where this symbol ends
     source:      str
     docstring:   str      = ""  # extracted doc comment / docstring (empty if none)
-    language:    str      = "" # if this is a method, the name of its class (or empty)
+    language:    str      = ""
     parent_name: str      = ""
     children:    list[Symbol] = field(default_factory=list)
 
