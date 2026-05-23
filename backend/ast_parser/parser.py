@@ -8,7 +8,7 @@ from typing import Optional
 import warnings
 import json
 
-from utils.constants import ENCODER_MODEL
+from utils.constants import ENCODER_MODEL, IGNORED_DIRS, TEXT_EXTENSIONS
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -71,38 +71,52 @@ def parse_file(file_path: str) -> Optional[ParseResult]:
         orphan_src = orphan_src,
     )
 
-
 def parse_directory(
     root_path: str,
     skip_dirs: set[str] | None = None,
-) -> list[ParseResult]:
+) -> tuple[list[ParseResult], list[dict]]:
     """
     Recursively parse all supported files in a directory.
+    Returns a tuple: (ast_results, text_results)
     """
     if skip_dirs is None:
-        skip_dirs = {
-            ".git", "node_modules", "__pycache__", ".venv",
-            "venv", "dist", "build", ".next", "coverage",
-            "vendor", "target",
-        }
+        skip_dirs = IGNORED_DIRS
 
-    results = []
+    ast_results = []
+    text_results = []
     root = Path(root_path).resolve()
 
     for file_path in root.rglob("*"):
         if not file_path.is_file():
             continue
+
         if any(skip in file_path.parts for skip in skip_dirs):
             continue
+
+        ext = file_path.suffix.lower()
+        rel_path = str(file_path.relative_to(root)).replace("\\", "/")
+
+        if ext in TEXT_EXTENSIONS:
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                text_results.append({
+                    "file_path": rel_path,
+                    "content": content
+                })
+            except Exception:
+                pass
+            continue
+
         if detect_language(str(file_path)) is None:
             continue
 
         result = parse_file(str(file_path))
         if result:
-            result.file_path = str(file_path.relative_to(root)).replace("\\", "/")
-            results.append(result)
+            result.file_path = rel_path
+            ast_results.append(result)
 
-    return results
+    return ast_results, text_results
+
 
 def save_ast_results_to_json(results: list, dir: str | Path) -> None:
     """
