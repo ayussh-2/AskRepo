@@ -1,9 +1,19 @@
 from fastapi import Body, FastAPI, BackgroundTasks
-from utils import chunk_parse_result, clone_repo, success_response, error_response, chunk_text_file,generate_and_store_embeddings
+from db.db import create_db
+from utils import chunk_parse_result, clone_repo, success_response, error_response,generate_and_store_embeddings,search_chunk
 from ast_parser import parse_directory
+from contextlib import asynccontextmanager
+
 
 
 app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db()    
+
+
+
 
 @app.get("/")
 def health():
@@ -26,8 +36,6 @@ def start_ingesting(repo_path, repo_name, commit_sha):
         #         commit_sha=commit_sha
         #     ))
 
-        print(f"Total chunks generated: {len(all_chunks)}")
-
         generate_and_store_embeddings(all_chunks, repo_name, commit_sha)
 
     except Exception as e:
@@ -48,3 +56,23 @@ def ingest_handler(background_tasks: BackgroundTasks, repo_url: str = Body(..., 
         "commit_sha": commit_sha,
         "repo_name": repo_name,
     })
+
+@app.post("/query")
+def query_ask_handler(
+    repo_name: str,
+    query: str = Body(..., embed=True),
+    top_k: int = 5
+):
+    if not query or not repo_name:
+        return error_response(400, "query and repo_name is required")
+    
+    results = search_chunk(query, repo_name, top_k)
+    
+    return success_response(200, "done", [
+        {
+            "file_path": r.file_path,
+            "symbol_name": r.symbol_name,
+            "chunk_text": r.chunk_text,
+        }
+        for r in results
+    ])

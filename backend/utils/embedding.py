@@ -1,14 +1,35 @@
-import os
-import psycopg
-import time
-from pgvector.psycopg import register_vector
-from google import genai
+import ollama
+from sqlmodel import Session, select
+from db.models import RepoChunk
 from google.genai import types
+import time
 from .config import settings
 
-client = genai.Client(api_key=settings.gemini_api_key)
+
+client = ollama.Client(host=settings.ollama_base_url)
+
+def embed(contents):
+    if isinstance(contents, str):
+        texts = [contents]
+    
+    elif isinstance(contents, list):
+        texts = []
+        for c in contents:
+            if isinstance(c, types.Content):
+                texts.append(c.parts[0].text)
+            else:
+                texts.append(c)
+    
+    response = client.embed(
+        model=settings.embedding_model,
+        input=texts
+    )
+    
+    return response.embeddings 
 
 def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
+    from db.db import engine
+
     if not all_chunks:
         print("No chunks provided for embedding.")
         return
@@ -25,49 +46,51 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
     all_embeddings = []
     batch_size = 100
 
-    print("Generating embeddings via Gemini API...")
+    print("Generating embeddings...")
 
     for i in range(0, len(contents), batch_size):
         batch_contents = contents[i:i + batch_size]
         batch_chunks = all_chunks[i:i + batch_size]
 
         try:
-            result = client.models.embed_content(
-                model='gemini-embedding-2',
-                contents=batch_contents,
-                config=types.EmbedContentConfig(output_dimensionality=768)
-            )
+            result = embed(batch_contents)
 
-            if result and result.embeddings:
-                all_embeddings.extend([e.values for e in result.embeddings])
-                valid_chunks.extend(batch_chunks) # Only save chunks that worked
-                print(f"Processed chunks {i} to {i + len(batch_contents)}...")
-            else:
-                print(f"⚠️ Skipped batch {i} to {i + len(batch_contents)}: API returned None (likely safety filter).")
+            if result:
+                all_embeddings.extend(result)
+                valid_chunks.extend(batch_chunks)
 
         except Exception as e:
-            print(f"❌ Error on batch {i} to {i + len(batch_contents)}: {e}")
+            print(f"Error on batch {i} to {i + len(batch_contents)}: {e}")
 
         time.sleep(4)
 
-    print(f"Successfully generated {len(all_embeddings)} embeddings. Inserting into database...")
-
-    with psycopg.connect(settings.database_url, autocommit=True) as conn:
-        register_vector(conn)
-
-        with conn.cursor() as cur:
-            for chunk, embedding_vector in zip(valid_chunks, all_embeddings):
-                cur.execute("""
-                    INSERT INTO repo_chunks
-                    (repo_name, commit_sha, file_path, symbol_name, chunk_text, embedding)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (
-                    repo_name,
-                    commit_sha,
-                    chunk.metadata.get('file_path', ''),
-                    chunk.metadata.get('symbol_name', ''),
-                    chunk.text,
-                    embedding_vector
-                ))
+    with Session(engine) as session:
+        for chunk, emb in zip(valid_chunks, all_embeddings):
+            session.add(RepoChunk(
+                repo_name=repo_name,
+                commit_sha=commit_sha,
+                file_path=chunk.metadata.get('file_path', ''),
+                symbol_name=chunk.metadata.get('symbol_name', ''),
+                chunk_text=chunk.text,
+                embedding=emb 
+            ))
+        session.commit()
 
     print("Database ingestion complete!")
+
+def search_chunk(query, repo_name, top_k):
+    from db.db import engine
+
+    formatted_query = f"task: code retrieval | query: {query}" 
+    result = embed(formatted_query)
+    query_embedding = embed(formatted_query)[0]
+
+    with Session(engine) as session:
+        results = session.exec(
+            select(RepoChunk)
+            .where(RepoChunk.repo_name == repo_name)
+            .order_by(RepoChunk.embedding.cosine_distance(query_embedding))
+            .limit(top_k)
+        ).all()
+
+    return results
