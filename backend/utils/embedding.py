@@ -65,16 +65,22 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
         time.sleep(4)
 
     with Session(engine) as session:
-        for chunk, emb in zip(valid_chunks, all_embeddings):
-            session.add(RepoChunk(
-                repo_name=repo_name,
-                commit_sha=commit_sha,
-                file_path=chunk.metadata.get('file_path', ''),
-                symbol_name=chunk.metadata.get('symbol_name', ''),
-                chunk_text=chunk.text,
-                embedding=emb 
-            ))
-        session.commit()
+        for i in range(0, len(valid_chunks), batch_size):
+            batch_chunks = valid_chunks[i:i + batch_size]
+            batch_embeddings = all_embeddings[i:i + batch_size]
+            
+            for chunk, emb in zip(batch_chunks, batch_embeddings):
+                session.add(RepoChunk(
+                    repo_name=repo_name,
+                    commit_sha=commit_sha,
+                    file_path=chunk.metadata.get('file_path', ''),
+                    symbol_name=chunk.metadata.get('symbol_name', ''),
+                    chunk_text=chunk.text,
+                    embedding=emb
+                ))
+            
+            session.commit()
+            print(f"Stored chunks {i} to {i + len(batch_chunks)}")
 
     print("Database ingestion complete!")
 
