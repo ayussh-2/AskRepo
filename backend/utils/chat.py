@@ -8,14 +8,9 @@ def sanitaize_context(chunks,max_chars: int = 12000):
     unique_chunks = []
 
     for chunk in chunks:
-        if isinstance(chunk, dict):
-            file_path = chunk.get("file_path", "")
-            symbol_name = chunk.get("symbol_name", "")
-            chunk_text = chunk.get("chunk_text", "")
-        else:
-            file_path = getattr(chunk, "file_path", "")
-            symbol_name = getattr(chunk, "symbol_name", "")
-            chunk_text = getattr(chunk, "chunk_text", "")
+        file_path = getattr(chunk, "file_path", "")
+        symbol_name = getattr(chunk, "symbol_name", "")
+        chunk_text = getattr(chunk, "chunk_text", "")
 
         key = (
             file_path,
@@ -119,3 +114,16 @@ def chat(chunks,question: str):
         contents=prompt
     )
     return response.text
+
+
+def chat_stream(chunks,question: str):
+    prompt = build_prompt(chunks,question)
+    response = client.models.generate_content_stream(
+    model="gemini-3.5-flash",
+    contents=prompt
+)
+    for chunk in response:
+        # print(chunk.text)
+        yield chunk.text
+
+

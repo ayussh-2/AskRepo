@@ -1,8 +1,9 @@
 from fastapi import Body, FastAPI, BackgroundTasks
 from db.db import create_db
-from utils import chunk_parse_result, clone_repo, delete_repo_folder, success_response, error_response,generate_and_store_embeddings,search_chunk,chat
+from utils import chunk_parse_result, clone_repo, delete_repo_folder, success_response, error_response,generate_and_store_embeddings,search_chunk,chat_stream
 from ast_parser import parse_directory
 from contextlib import asynccontextmanager
+from fastapi.responses import StreamingResponse
 
 
 
@@ -70,8 +71,12 @@ def query_ask_handler(
     chunks = search_chunk(query, repo_name, top_k)
 
 
-    response = chat(chunks,query)
+    # response = chat(chunks,query)
 
     
     
-    return success_response(200, "ok",response)
+    return StreamingResponse(
+        chat_stream(chunks,query),
+        media_type="text/plain"
+
+    )
