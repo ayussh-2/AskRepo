@@ -38,9 +38,7 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
 
     contents = []
     for chunk in all_chunks:
-        file_path = chunk.metadata.get('file_path', 'unknown')
-        formatted_text = f"title: {file_path} | text: {chunk.text}"
-        contents.append(types.Content(parts=[types.Part.from_text(text=formatted_text)]))
+        contents.append(chunk.text)
 
     valid_chunks = []
     all_embeddings = []
@@ -54,21 +52,17 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
 
         try:
             result = embed(batch_contents)
-
             if result:
                 all_embeddings.extend(result)
                 valid_chunks.extend(batch_chunks)
-
         except Exception as e:
             print(f"Error on batch {i} to {i + len(batch_contents)}: {e}")
-
-        time.sleep(4)
 
     with Session(engine) as session:
         for i in range(0, len(valid_chunks), batch_size):
             batch_chunks = valid_chunks[i:i + batch_size]
             batch_embeddings = all_embeddings[i:i + batch_size]
-            
+
             for chunk, emb in zip(batch_chunks, batch_embeddings):
                 session.add(RepoChunk(
                     repo_name=repo_name,
@@ -78,18 +72,17 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
                     chunk_text=chunk.text,
                     embedding=emb
                 ))
-            
+
             session.commit()
             print(f"Stored chunks {i} to {i + len(batch_chunks)}")
 
     print("Database ingestion complete!")
 
+
 def search_chunk(query, repo_name, top_k):
     from db.db import engine
 
-    formatted_query = f"task: code retrieval | query: {query}" 
-    result = embed(formatted_query)
-    query_embedding = embed(formatted_query)[0]
+    query_embedding = embed(query)[0]
 
     with Session(engine) as session:
         results = session.exec(
@@ -99,4 +92,16 @@ def search_chunk(query, repo_name, top_k):
             .limit(top_k)
         ).all()
 
-    return results
+        file_paths = list(set(r.file_path for r in results))
+
+        imports = session.exec(
+            select(RepoChunk)
+            .where(RepoChunk.repo_name == repo_name)
+            .where(RepoChunk.file_path.in_(file_paths))
+            .where(RepoChunk.symbol_name == "")
+        ).all()
+
+    seen_ids = {r.id for r in results}
+    extra = [i for i in imports if i.id not in seen_ids]
+
+    return results + extra

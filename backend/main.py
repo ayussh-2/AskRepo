@@ -1,6 +1,6 @@
 from fastapi import Body, FastAPI, BackgroundTasks
 from db.db import create_db
-from utils import chunk_parse_result, clone_repo, success_response, error_response,generate_and_store_embeddings,search_chunk
+from utils import chunk_parse_result, clone_repo, delete_repo_folder, success_response, error_response,generate_and_store_embeddings,search_chunk,chat
 from ast_parser import parse_directory
 from contextlib import asynccontextmanager
 
@@ -37,6 +37,7 @@ def start_ingesting(repo_path, repo_name, commit_sha):
         #     ))
 
         generate_and_store_embeddings(all_chunks, repo_name, commit_sha)
+        delete_repo_folder(repo_path)
 
     except Exception as e:
         print(f"Error in background task: {e}")
@@ -66,13 +67,11 @@ def query_ask_handler(
     if not query or not repo_name:
         return error_response(400, "query and repo_name is required")
     
-    results = search_chunk(query, repo_name, top_k)
+    chunks = search_chunk(query, repo_name, top_k)
+
+
+    response = chat(chunks,query)
+
     
-    return success_response(200, "done", [
-        {
-            "file_path": r.file_path,
-            "symbol_name": r.symbol_name,
-            "chunk_text": r.chunk_text,
-        }
-        for r in results
-    ])
+    
+    return success_response(200, "ok",response)

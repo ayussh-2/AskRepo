@@ -7,10 +7,6 @@ def get_commit_sha(repo_path: str) -> str:
         ["git", "rev-parse", "HEAD"], cwd=repo_path
     ).decode().strip()
 
-import os
-import sys
-import subprocess
-
 def clone_repo(repo_url: str) -> tuple[str, str, str]:
     repo_name = repo_url.rstrip("/").split("/")[-1]
     utils_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +18,8 @@ def clone_repo(repo_url: str) -> tuple[str, str, str]:
 
     if os.path.exists(relative_folder_path):
         if sys.platform == "win32":
-            subprocess.run(["rmdir", "/s", "/q", relative_folder_path], shell=True)
+            normalized_path = os.path.normpath(relative_folder_path)
+            subprocess.run(f'rmdir /s /q "{normalized_path}"', shell=True)
         else:
             subprocess.run(["rm", "-rf", relative_folder_path])
 
@@ -40,3 +37,12 @@ def clone_repo(repo_url: str) -> tuple[str, str, str]:
     else:
         print(f"Clone error: {result.stderr}")
         raise RuntimeError(f"Failed to clone repository: {result.stderr}")
+
+def delete_repo_folder(repo_path: str):
+    if os.path.exists(repo_path):
+        if sys.platform == "win32":
+            normalized_path = os.path.normpath(repo_path)
+            subprocess.run(f'rmdir /s /q "{normalized_path}"', shell=True)
+        else:
+            subprocess.run(["rm", "-rf", repo_path])
+        print(f"Deleted repository folder: {repo_path}")
