@@ -119,7 +119,7 @@ def chat(chunks,question: str):
 def chat_stream(chunks,question: str):
     prompt = build_prompt(chunks,question)
     response = client.models.generate_content_stream(
-    model="gemini-3.5-flash",
+    model=settings.gemini_llm_model,
     contents=prompt
 )
     for chunk in response:

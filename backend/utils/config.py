@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     gemini_api_key: str = ""
     database_url: str = "postgresql://user:password@localhost/dbname"
-    gemini_llm_model:str="gemini-3.5-flash"
+    gemini_llm_model:str="gemini-3.1-flash-lite"
 
     environment: str = "development"
     embedding_model:str= "nomic-embed-text"
