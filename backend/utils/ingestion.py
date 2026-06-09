@@ -1,4 +1,4 @@
-from ast_parser.parser import parse_directory
+from lib.ast_parser.parser import parse_directory
 from utils import chunk_parse_result,generate_and_store_embeddings,delete_repo_folder,error_response,success_response
 from sqlmodel import Session,select
 from sqlalchemy import func

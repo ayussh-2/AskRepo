@@ -4,7 +4,7 @@ import os
 import tiktoken
 from dataclasses import dataclass
 from typing import List
-from ast_parser.data_models import ParseResult, Symbol
+from lib.ast_parser.data_models import ParseResult, Symbol
 from utils.constants import ENCODER_MODEL,MAX_TOKENS,OVERLAP
 
 enc = tiktoken.get_encoding(ENCODER_MODEL)

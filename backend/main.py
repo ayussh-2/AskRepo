@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import Body, FastAPI, BackgroundTasks
 from db.db import create_db
 from utils import clone_repo, success_response, error_response,search_chunk,chat_stream,start_ingesting,check_ingestion_status,create_ingestion_status,list_repos
@@ -36,7 +38,8 @@ def ingest_handler(background_tasks: BackgroundTasks, repo_url: str = Body(..., 
 def query_ask_handler(
     repo_name: str,
     query: str = Body(..., embed=True),
-    top_k: int = 5
+    session_id: Optional[str] = Body(None, embed=True),
+    top_k: int = 4
 ):
     if not query or not repo_name:
         return error_response(400, "query and repo_name is required")
@@ -46,7 +49,7 @@ def query_ask_handler(
         return error_response(400,"repo is not ingested!")
     
     return StreamingResponse(
-        chat_stream(chunks,query),
+        chat_stream(chunks,query,session_id),
         media_type="text/plain"
 
     )
