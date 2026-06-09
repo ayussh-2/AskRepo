@@ -3,7 +3,7 @@ from utils.manage_repo import clone_repo, delete_repo_folder
 from utils.response_handlers import success_response, error_response
 from utils.embedding import generate_and_store_embeddings,search_chunk
 from utils.chat import chat,chat_stream
-from utils.ingestion import check_ingestion_status,create_ingestion_status,start_ingesting
+from utils.ingestion import check_ingestion_status,create_ingestion_status,start_ingesting,list_repos
 
 __all__ = [
     "chunk_parse_result",
@@ -19,5 +19,6 @@ __all__ = [
     "chat_stream",
     "check_ingestion_status",
     "create_ingestion_status",
-    "start_ingesting"
+    "start_ingesting",
+    "list_repos"
 ]

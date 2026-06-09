@@ -1,6 +1,6 @@
 from fastapi import Body, FastAPI, BackgroundTasks
 from db.db import create_db
-from utils import clone_repo, success_response, error_response,search_chunk,chat_stream,start_ingesting,check_ingestion_status,create_ingestion_status
+from utils import clone_repo, success_response, error_response,search_chunk,chat_stream,start_ingesting,check_ingestion_status,create_ingestion_status,list_repos
 from contextlib import asynccontextmanager
 from fastapi.responses import StreamingResponse
 
@@ -55,4 +55,6 @@ def query_ask_handler(
 def get_ingestion_status_handler(job_id: int = None):
     return check_ingestion_status(job_id)
 
-
+@app.get("/repos")
+def get_repos_handler(page: int = 1, page_size: int = 10):
+    return list_repos(page, page_size)
