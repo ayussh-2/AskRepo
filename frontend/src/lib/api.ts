@@ -22,7 +22,16 @@ export type ApiResult<T> =
 
 
 export interface IngestData {
-  job_id: string;
+  job_id: number;
+}
+
+export interface IngestionStatusData {
+  job_id: number;
+  repo_name: string;
+  commit_sha: string;
+  status: 'pending' | 'completed' | 'failed';
+  error_message: string | null;
+  updated_at: string | null;
 }
 
 
@@ -64,5 +73,9 @@ export const api = {
     request<IngestData>('/ingest', {
       method: 'POST',
       body: JSON.stringify({ repo_url: repoUrl }),
+    }),
+  status: (jobId: number) =>
+    request<IngestionStatusData>(`/status?job_id=${jobId}`, {
+      method: 'GET',
     }),
 };

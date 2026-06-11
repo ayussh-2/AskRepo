@@ -6,7 +6,11 @@ import {parseRepoUrl} from "@/utils/url-parser"
 import LoadingButton from "@/components/LoadingButton";
 import { api } from "@/lib/api";
 
-export default function IngestScreen() {
+interface IngestScreenProps {
+  onIngestStarted: (jobId: number) => void;
+}
+
+export default function IngestScreen({ onIngestStarted }: IngestScreenProps) {
   const [repoName, setRepoName] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
   const [error, setError] = useState("");
@@ -61,6 +65,9 @@ export default function IngestScreen() {
       if (res.ok) {
         setSuccess(true);
         console.log("Ingestion started with job_id:", res.data.job_id);
+        setTimeout(() => {
+          onIngestStarted(res.data.job_id);
+        }, 800);
       } else {
         setError(res.message);
       }
