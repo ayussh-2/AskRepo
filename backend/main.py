@@ -2,7 +2,7 @@ from typing import Optional
 
 from fastapi import Body, FastAPI, BackgroundTasks
 from db.db import create_db
-from utils import clone_repo, success_response, error_response,search_chunk,chat_stream,start_ingesting,check_ingestion_status,create_ingestion_status,list_repos
+from utils import clone_repo, success_response, error_response,search_chunk,chat_stream,start_ingesting,check_ingestion_status,create_ingestion_status,list_repos,validate_repo_url
 from contextlib import asynccontextmanager
 from fastapi.responses import StreamingResponse
 
@@ -17,11 +17,16 @@ def health():
     return {"msg":"hello world!"}
 
 @app.post("/ingest")
-def ingest_handler(background_tasks: BackgroundTasks, repo_url: str = Body(..., embed=True)):
+async def ingest_handler(background_tasks: BackgroundTasks, repo_url: str = Body(..., embed=True)):
     if repo_url == "":
         return error_response(400, "No Repo Url given", "Invalid URL")
 
+    if not await validate_repo_url(repo_url):
+        return error_response(400, "Invalid repository URL or repository is not accessible")
+
     repo_path, commit_sha, repo_name = clone_repo(repo_url)
+
+    print(repo_url)
 
     job_id = create_ingestion_status(repo_name, commit_sha)
 
@@ -29,9 +34,6 @@ def ingest_handler(background_tasks: BackgroundTasks, repo_url: str = Body(..., 
 
     return success_response(200, "Repo cloned, processing started", {
         "job_id": job_id,
-        "repo_path": repo_path,
-        "commit_sha": commit_sha,
-        "repo_name": repo_name,
     })
 
 @app.post("/query")

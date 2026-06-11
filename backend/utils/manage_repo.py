@@ -1,6 +1,8 @@
 import os
 import subprocess
 import sys
+import httpx
+
 
 def get_commit_sha(repo_path: str) -> str:
     return subprocess.check_output(
@@ -8,13 +10,26 @@ def get_commit_sha(repo_path: str) -> str:
     ).decode().strip()
 
 def clone_repo(repo_url: str) -> tuple[str, str, str]:
-    repo_name = repo_url.rstrip("/").split("/")[-1]
+    cleaned_url = repo_url.rstrip("/")
+    if cleaned_url.endswith(".git"):
+        cleaned_url = cleaned_url[:-4]
+    
+    cleaned_url = cleaned_url.replace(":", "/")
+    parts = [p for p in cleaned_url.split("/") if p]
+    
+    if len(parts) >= 2:
+        repo_name = f"{parts[-2]}/{parts[-1]}"
+    elif len(parts) == 1:
+        repo_name = parts[0]
+    else:
+        repo_name = "unknown"
+
     utils_dir = os.path.dirname(os.path.abspath(__file__))
     base_dir = os.path.abspath(os.path.join(utils_dir, "..", "..", "repos"))
-    os.makedirs(base_dir, exist_ok=True)
+    
+    relative_folder_path = os.path.normpath(os.path.join(base_dir, repo_name))
+    os.makedirs(os.path.dirname(relative_folder_path), exist_ok=True)
 
-    cloned_folder = repo_name.replace(".git", "")
-    relative_folder_path = os.path.join(base_dir, cloned_folder)
 
     if os.path.exists(relative_folder_path):
         if sys.platform == "win32":
@@ -46,3 +61,12 @@ def delete_repo_folder(repo_path: str):
         else:
             subprocess.run(["rm", "-rf", repo_path])
         print(f"Deleted repository folder: {repo_path}")
+
+
+async def validate_repo_url(repo_url: str) -> bool:
+    try:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(repo_url)
+            return response.status_code == 200
+    except Exception:
+        return False
