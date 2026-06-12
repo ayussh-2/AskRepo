@@ -82,4 +82,10 @@ export const api = {
     request<IngestionStatusData>(`/status?repo_name=${encodeURIComponent(repoName)}`, {
       method: 'GET',
     }),
+  query: (repoName: string, queryText: string, sessionId?: string) =>
+    fetch(`${BASE_URL}/query?repo_name=${encodeURIComponent(repoName)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: queryText, session_id: sessionId }),
+    }),
 };

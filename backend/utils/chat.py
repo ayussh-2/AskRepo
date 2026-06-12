@@ -168,7 +168,7 @@ def chat(chunks,question: str):
     return response.text
 
 
-def chat_stream(chunks,query: str,session_id:str):
+async def chat_stream(chunks,query: str,session_id:str):
     from google.genai import types
 
     history = []
@@ -207,18 +207,16 @@ def chat_stream(chunks,query: str,session_id:str):
         )
     )
 
-    # print(contents)
-
     config = types.GenerateContentConfig(system_instruction=system_instruction)
     
-    response = client.models.generate_content_stream(
+    response = await client.aio.models.generate_content_stream(
         model=settings.gemini_llm_model,
         contents=contents,
         config=config
     )
     
     full_response = ""
-    for chunk in response:
+    async for chunk in response:
         full_response += chunk.text
         yield chunk.text
 

@@ -13,6 +13,7 @@ export default defineConfig({
   imports: false,
   manifest:{
     name:"askRepo",
+    permissions: ['activeTab']
   }
   
 

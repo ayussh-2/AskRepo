@@ -6,6 +6,7 @@ import { api, IngestionStatusData } from "@/lib/api";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import GitHubIcon from "@/components/icons/Github";
 import { cn } from "@/lib/utils";
+import { browser } from "wxt/browser";
 
 interface ProgressScreenProps {
   jobId: number;
@@ -88,6 +89,13 @@ export default function ProgressScreen({ jobId, onBack }: ProgressScreenProps) {
   const isCompleted = data?.status === "completed";
   const isFailed = data?.status === "failed" || !!error;
 
+  function openChatUI(){
+    browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+      browser.tabs.sendMessage(tab.id!, { type: 'OPEN_CHAT' });
+      window.close()
+    });
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="space-y-1">
@@ -142,7 +150,7 @@ export default function ProgressScreen({ jobId, onBack }: ProgressScreenProps) {
             >
               <div className="flex flex-col gap-2">
                 Codebase has been parsed and it is ready!
-                <Button className="mt-5" variant="default">
+                <Button className="mt-5" variant="default" onClick={openChatUI}>
                   Start Chat Session
                 </Button>
               </div>
