@@ -57,8 +57,8 @@ def query_ask_handler(
     )
 
 @app.get("/status")
-def get_ingestion_status_handler(job_id: int = None):
-    return check_ingestion_status(job_id)
+def get_ingestion_status_handler(job_id: Optional[int] = None, repo_name: Optional[str] = None):
+    return check_ingestion_status(job_id, repo_name)
 
 @app.get("/repos")
 def get_repos_handler(page: int = 1, page_size: int = 10):

@@ -11,5 +11,9 @@ export default defineConfig({
   }),
   srcDir:"src",
   imports: false,
+  manifest:{
+    name:"askRepo",
+  }
+  
 
 });

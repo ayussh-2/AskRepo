@@ -78,4 +78,8 @@ export const api = {
     request<IngestionStatusData>(`/status?job_id=${jobId}`, {
       method: 'GET',
     }),
+  checkRepoStatus: (repoName: string) =>
+    request<IngestionStatusData>(`/status?repo_name=${encodeURIComponent(repoName)}`, {
+      method: 'GET',
+    }),
 };

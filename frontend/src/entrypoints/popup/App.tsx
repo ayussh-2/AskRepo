@@ -24,7 +24,10 @@ function App() {
       ) : (
         <ProgressScreen jobId={jobId!} onBack={handleBackToIngest} />
       )}
+
+
     </Layout>
+
   );
 }
 

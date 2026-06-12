@@ -5,7 +5,7 @@ from sqlalchemy import func
 from db.models import IngestionStatus, RepoChunk
 import math
 
-def check_ingestion_status(job_id: int = None):
+def check_ingestion_status(job_id: int = None, repo_name: str = None):
     from db.db import engine
 
     try:
@@ -24,9 +24,26 @@ def check_ingestion_status(job_id: int = None):
                 else:
                     return error_response(404, f"Ingestion job with ID {job_id} not found")
 
-            
+            if repo_name is not None:
+                db_status = session.exec(
+                    select(IngestionStatus)
+                    .where(IngestionStatus.repo_name == repo_name)
+                    .order_by(IngestionStatus.updated_at.desc())
+                    .limit(1)
+                ).first()
+                if db_status:
+                    return success_response(200, "Ingestion status retrieved", {
+                        "job_id": db_status.id,
+                        "repo_name": db_status.repo_name,
+                        "commit_sha": db_status.commit_sha,
+                        "status": db_status.status,
+                        "error_message": db_status.error_message,
+                        "updated_at": db_status.updated_at.isoformat() if db_status.updated_at else None
+                    })
+                else:
+                    return error_response(404, f"Ingestion job for repo {repo_name} not found")
 
-            return error_response(400, "Job id is required!")
+            return error_response(400, "job_id or repo_name is required!")
     except Exception as e:
         return error_response(500, f"Database error during status retrieval: {e}")
 
