@@ -6,3 +6,6 @@ freeze:
 
 dev-frontend:
 	cd frontend && bun dev
+
+dev-webapp:
+	cd webapp && npm start
