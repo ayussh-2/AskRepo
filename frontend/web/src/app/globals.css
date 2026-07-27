@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0d0d0e;
+  --foreground: #f7f8f8;
+}
+
+@theme {
+  --font-sans: var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+body {
+  background: #0d0d0e;
+  color: #f7f8f8;
+  font-family: var(--font-geist-sans), sans-serif;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* Custom scrollbar styling for a sleek dark look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #23252a;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3a3f47;
+}

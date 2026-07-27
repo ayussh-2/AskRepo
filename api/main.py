@@ -18,7 +18,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://github.com"],
+    allow_origins=[
+        "https://github.com",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -267,3 +270,35 @@ def get_repos_handler(
             })
     except Exception as e:
         return error_response(500, f"Database error during repository listing: {e}")
+
+@app.get("/check-sync", dependencies=[Depends(rate_limit)])
+def check_sync_handler(repo_name: str = Query(...)):
+    try:
+        with Session(engine) as session:
+            latest_job = session.exec(
+                select(IngestionStatus)
+                .where(func.lower(IngestionStatus.repo_name) == repo_name.lower())
+                .where(IngestionStatus.status == "completed")
+                .order_by(IngestionStatus.updated_at.desc())
+                .limit(1)
+            ).first()
+            
+            if not latest_job:
+                return error_response(404, f"Repository {repo_name} not found in database.")
+                
+            # Construct the GitHub URL from the repo_name
+            repo_url = f"https://github.com/{latest_job.repo_name}"
+            
+            remote_commit_sha = get_remote_commit_sha(repo_url)
+            if not remote_commit_sha:
+                return error_response(400, "Could not fetch remote commit hash.")
+                
+            up_to_date = (latest_job.commit_sha == remote_commit_sha)
+            return success_response(200, "Sync check complete", {
+                "repo_name": latest_job.repo_name,
+                "indexed_commit_sha": latest_job.commit_sha,
+                "latest_commit_sha": remote_commit_sha,
+                "up_to_date": up_to_date
+            })
+    except Exception as e:
+        return error_response(500, f"Error checking repository synchronization status: {e}")

@@ -11,11 +11,11 @@ dev-worker:
 deploy-embed:
 	cd embed-service && python -m modal deploy embed_app.py
 
-dev-frontend:
-	cd frontend && bun dev
+dev-extension:
+	cd frontend/extension && bun dev
 
-dev-webapp:
-	cd webapp && npm start
+dev-web:
+	cd frontend/web && bun dev
 
 migrate:
 	python scripts/migrate.py
