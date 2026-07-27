@@ -36,13 +36,24 @@ export interface IngestionStatusData {
 
 
 
+let currentToken: string | null = null;
+
+export function setApiToken(token: string | null) {
+  currentToken = token;
+}
+
 async function request<T>(
   path: string,
   options?: RequestInit
 ): Promise<ApiResult<T>> {
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (currentToken) {
+      headers['Authorization'] = `Bearer ${currentToken}`;
+    }
+
     const res = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       ...options,
     });
 
@@ -82,10 +93,15 @@ export const api = {
     request<IngestionStatusData>(`/status?repo_name=${encodeURIComponent(repoName)}`, {
       method: 'GET',
     }),
-  query: (repoName: string, queryText: string, sessionId?: string) =>
-    fetch(`${BASE_URL}/query?repo_name=${encodeURIComponent(repoName)}`, {
+  query: (repoName: string, queryText: string, sessionId?: string) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (currentToken) {
+      headers['Authorization'] = `Bearer ${currentToken}`;
+    }
+    return fetch(`${BASE_URL}/query?repo_name=${encodeURIComponent(repoName)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ query: queryText, session_id: sessionId }),
-    }),
+    });
+  },
 };

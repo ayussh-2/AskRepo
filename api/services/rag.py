@@ -9,6 +9,7 @@ from db.db import engine
 from db.models import RepoChunk
 from sqlmodel import Session, select
 from lib.redis import get_chat_history, add_chat_message, save_all_history
+from sqlalchemy import func
 
 client = genai.Client(api_key=settings.gemini_api_key)
 
@@ -29,7 +30,7 @@ def search_chunk(query_embedding: List[float], repo_name: str, top_k: int = 4) -
     with Session(engine) as session:
         results = session.exec(
             select(RepoChunk)
-            .where(RepoChunk.repo_name == repo_name)
+            .where(func.lower(RepoChunk.repo_name) == repo_name.lower())
             .order_by(RepoChunk.embedding.cosine_distance(query_embedding))
             .limit(top_k)
         ).all()
@@ -38,7 +39,7 @@ def search_chunk(query_embedding: List[float], repo_name: str, top_k: int = 4) -
 
         imports = session.exec(
             select(RepoChunk)
-            .where(RepoChunk.repo_name == repo_name)
+            .where(func.lower(RepoChunk.repo_name) == repo_name.lower())
             .where(RepoChunk.file_path.in_(file_paths))
             .where(RepoChunk.symbol_name == "")
         ).all()

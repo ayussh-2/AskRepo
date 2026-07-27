@@ -58,18 +58,24 @@ export default function IngestScreen({ onIngestStarted }: IngestScreenProps) {
         setCheckingStatus(true);
       }
 
+      console.log("[DEBUG extension] Checking repo status for:", result.fullName);
       try {
         const res = await api.checkRepoStatus(result.fullName);
+        console.log("[DEBUG extension] checkRepoStatus response:", res);
         if (!isMounted) return;
         if (res.ok) {
           const status = res.data.status;
+          console.log("[DEBUG extension] Repo status is:", status, "for job:", res.data.job_id);
           if (status === "pending" || status === "completed") {
+            console.log("[DEBUG extension] Transitioning to progress screen with job:", res.data.job_id);
             onIngestStarted(res.data.job_id);
             return;
           }
+        } else {
+          console.warn("[DEBUG extension] checkRepoStatus returned error:", res.message);
         }
       } catch (err) {
-        console.error("Failed to check repository status:", err);
+        console.error("[DEBUG extension] Failed to check repository status:", err);
       } finally {
         if (isMounted) {
           setCheckingStatus(false);

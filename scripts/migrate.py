@@ -28,6 +28,8 @@ def run_migrations():
     with engine.connect() as conn:
         print("Enabling pgvector extension...")
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        print("Altering ingestion_statuses table...")
+        conn.execute(text("ALTER TABLE ingestion_statuses ADD COLUMN IF NOT EXISTS user_id VARCHAR;"))
         conn.commit()
     
     print("Creating tables if they do not exist...")

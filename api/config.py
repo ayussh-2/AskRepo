@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     modal_embed_url: str = "https://your-workspace--askrepo-embed-embed.modal.run"
     modal_embed_token: str = ""
     embedding_model: str = "embeddinggemma"
+    env: str = "production"
 
     # GitLab Trigger settings
     gitlab_project_id: str = ""
