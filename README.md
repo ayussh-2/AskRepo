@@ -14,6 +14,22 @@ No code leaves your machine except the natural language queries sent to Gemini.
 
 ---
 
+> [!IMPORTANT]
+> **Live & Production Deployment Version**
+>
+> The `main` branch contains the **self-hosted single-host version**.
+>
+> The live, decoupled production version (featuring a **Next.js Web Dashboard**, **GitLab CI/CD Ingestion Workers**, **Modal Serverless Query Embeddings**, and **Neon DB + Upstash**) is available on the **`deployment`** branch.
+>
+> **View it on GitHub:**  
+> https://github.com/ayussh-2/repo-assistant/tree/deployment
+>
+> **To switch to the deployment branch locally:**
+>
+> ```bash
+> git checkout deployment
+> ```
+
 ## Features
 
 - **Automatic repo detection.** The extension reads the current GitHub URL and wires up without any manual input.
