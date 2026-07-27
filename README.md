@@ -17,6 +17,8 @@ Repositories are chunked by logical AST symbols (functions, classes, methods) vi
 
 ---
 
+**For the self hosted version refer to the main branch**
+
 ## Features
 
 - **Dual Interfaces:**
