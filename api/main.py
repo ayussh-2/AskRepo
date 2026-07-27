@@ -10,7 +10,7 @@ from config import settings
 from db.db import engine
 from db.models import IngestionStatus
 from services.gitlab import trigger_ingestion_pipeline
-from services.rag import embed_query, search_chunk, chat_stream
+from services.rag import chat_stream_handler
 from services.limiter import rate_limit, ingest_rate_limit
 from services.auth import get_current_user
 
@@ -33,9 +33,12 @@ def success_response(status_code: int, message: str, data: Optional[dict] = None
 def error_response(status_code: int, message: str, errors: Optional[str] = None):
     return {"success": False, "message": message, "errors": errors}
 
+from services.health import get_health_status
+
+@app.get("/health")
 @app.get("/")
-def health():
-    return {"msg": "hello world!"}
+def health_handler():
+    return get_health_status()
 
 import subprocess
 
@@ -139,34 +142,50 @@ async def ingest_handler(
     except Exception as e:
         return error_response(500, f"Failed to trigger ingestion pipeline: {e}")
 
+from lib.redis import get_chat_history, clear_chat_history
+
 @app.post("/query", dependencies=[Depends(rate_limit)])
 async def query_ask_handler(
     repo_name: str = Query(...),
     query: str = Body(..., embed=True),
-    session_id: Optional[str] = Body(None, embed=True),
-    top_k: int = 4
+    top_k: int = 4,
+    current_user: dict = Depends(get_current_user)
 ):
     if not query or not repo_name:
         return error_response(400, "query and repo_name are required")
 
-    try:
-        query_embedding = await embed_query(query)
-        chunks = search_chunk(query_embedding, repo_name, top_k)
+    user_id = current_user.get("sub", "anonymous")
 
-        if len(chunks) == 0:
-            return error_response(400, "repo is not ingested!")
+    return StreamingResponse(
+        chat_stream_handler(user_id, repo_name, query, top_k),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
-        return StreamingResponse(
-            chat_stream(chunks, query, session_id),
-            media_type="text/plain",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            }
-        )
-    except Exception as e:
-        return error_response(500, f"Query execution failed: {e}")
+@app.get("/chat-history", dependencies=[Depends(rate_limit)])
+def get_chat_history_handler(
+    repo_name: str = Query(...),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.get("sub", "anonymous")
+    history = get_chat_history(user_id, repo_name)
+    return success_response(200, "Chat history retrieved successfully", {
+        "repo_name": repo_name,
+        "history": history
+    })
+
+@app.delete("/chat-history", dependencies=[Depends(rate_limit)])
+def clear_chat_history_handler(
+    repo_name: str = Query(...),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.get("sub", "anonymous")
+    clear_chat_history(user_id, repo_name)
+    return success_response(200, f"Chat history cleared for {repo_name}", None)
 
 @app.get("/status", dependencies=[Depends(rate_limit)])
 def get_ingestion_status_handler(job_id: Optional[int] = None, repo_name: Optional[str] = None):

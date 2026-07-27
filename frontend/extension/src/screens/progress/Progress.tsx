@@ -17,10 +17,10 @@ interface ProgressCardProps {
   title: string;
   icon: React.ReactNode;
   children?: React.ReactNode;
-  isError?:boolean
+  isError?: boolean;
 }
 
-function ProgressCard({ title, icon, children,isError }: ProgressCardProps) {
+function ProgressCard({ title, icon, children, isError }: ProgressCardProps) {
   return (
     <div>
       <Typography
@@ -28,17 +28,17 @@ function ProgressCard({ title, icon, children,isError }: ProgressCardProps) {
         className={`font-semibold ${isError && "text-destructive"}`}
       >
         <div className="flex items-center gap-1">
-
-        {icon}
-        {title}
+          {icon}
+          {title}
         </div>
       </Typography>
       <Typography
         variant="caption"
-className={cn(
-  "block mt-2 break-inside-auto", 
-  isError ? "text-destructive/80" : "text-muted-foreground"
-)}      >
+        className={cn(
+          "block mt-2 break-inside-auto",
+          isError ? "text-destructive/80" : "text-muted-foreground",
+        )}
+      >
         {children && children}
       </Typography>
     </div>
@@ -89,10 +89,10 @@ export default function ProgressScreen({ jobId, onBack }: ProgressScreenProps) {
   const isCompleted = data?.status === "completed";
   const isFailed = data?.status === "failed" || !!error;
 
-  function openChatUI(){
+  function openChatUI() {
     browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-      browser.tabs.sendMessage(tab.id!, { type: 'OPEN_CHAT' });
-      window.close()
+      browser.tabs.sendMessage(tab.id!, { type: "OPEN_CHAT" });
+      window.close();
     });
   }
 
@@ -117,8 +117,8 @@ export default function ProgressScreen({ jobId, onBack }: ProgressScreenProps) {
 
       <div className="rounded-xl text-card-foreground space-y-5 relative">
         {data && (
-          <div className="flex items-center gap-3 border-b pb-4">
-            <div className="p-2 bg-secondary rounded-lg border">
+          <div className="flex items-center gap-3 pb-4">
+            <div className="p-2 bg-secondary rounded-lg">
               <GitHubIcon className="size-4 text-muted-foreground" />
             </div>
             <div className="min-w-0 flex-1">
@@ -133,14 +133,11 @@ export default function ProgressScreen({ jobId, onBack }: ProgressScreenProps) {
         )}
 
         <div className="space-y-3">
-
           {isPending && (
             <ProgressCard
               title="Parsing Codebase"
               icon={<Spinner className="size-4  shrink-0" />}
-            >
-              
-            </ProgressCard>
+            ></ProgressCard>
           )}
 
           {isCompleted && (
@@ -159,17 +156,17 @@ export default function ProgressScreen({ jobId, onBack }: ProgressScreenProps) {
 
           {isFailed && (
             <ProgressCard
-            isError={true}
+              isError={true}
               title="Error Occurred"
-              icon={<AlertCircle className="size-4 shrink-0 mt-0.5 text-destructive" />}
+              icon={
+                <AlertCircle className="size-4 shrink-0 mt-0.5 text-destructive" />
+              }
             >
               {error ||
                 data?.error_message ||
                 "Unknown error during ingestion."}
             </ProgressCard>
           )}
-
-         
         </div>
       </div>
 

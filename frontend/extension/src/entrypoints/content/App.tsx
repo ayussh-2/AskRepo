@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { browser } from 'wxt/browser';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { parseRepoUrl } from '@/utils/url-parser';
 import { Button } from '@/components/ui/button';
 import ChatScreen from '@/screens/chat/Chat';
@@ -44,14 +44,16 @@ export default function App() {
 
   return (
     <>
-      <Button
-        variant="default"
-        onClick={() => setOpen(prev => !prev)}
-        className="fixed bottom-6 right-6 !size-14 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer z-[99999] border border-border/10 [&_svg]:!size-6"
-        title="Chat with repository"
-      >
-        {open ? <X /> : <MessageSquare />}
-      </Button>
+      {!open && (
+        <Button
+          variant="default"
+          onClick={() => setOpen(true)}
+          className="fixed bottom-6 right-6 !size-14 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer z-[99999] border border-border/10 [&_svg]:!size-6"
+          title="Chat with repository"
+        >
+          <MessageSquare />
+        </Button>
+      )}
 
       {open && <ChatScreen repoName={repoName} onClose={() => setOpen(false)} />}
     </>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Send, X, Copy, Check } from 'lucide-react';
+import { Send, X, Copy, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Typography } from '@/components/typography/Typography';
 import { Spinner } from '@/components/ui/spinner';
@@ -31,30 +31,48 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [width, setWidth] = useState(384);
-  const [height, setHeight] = useState(550);
+  const [width, setWidth] = useState(420);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const isResizing = useRef(false);
 
-  const startResize = (e: React.MouseEvent, direction: 'left' | 'top' | 'top-left') => {
+  // Fetch restored temporary chat history from Redis
+  useEffect(() => {
+    if (!repoName) return;
+    api.getChatHistory(repoName).then((res) => {
+      if (res.ok && res.data.history && res.data.history.length > 0) {
+        setMessages(
+          res.data.history.map((m, idx) => ({
+            id: `hist-${idx}`,
+            role: m.role === 'user' ? 'user' : 'bot',
+            text: m.content,
+          }))
+        );
+      }
+    });
+  }, [repoName]);
+
+  const handleClearHistory = async () => {
+    if (!repoName) return;
+    await api.clearChatHistory(repoName);
+    setMessages([
+      {
+        id: 'welcome',
+        role: 'bot',
+        text: `Cleared history. How can I help you with ${repoName}?`,
+      },
+    ]);
+  };
+
+  const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
     isResizing.current = true;
     const startX = e.clientX;
-    const startY = e.clientY;
     const startWidth = width;
-    const startHeight = height;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       if (!isResizing.current) return;
-      if (direction === 'left' || direction === 'top-left') {
-        const newWidth = Math.max(320, Math.min(800, startWidth + (startX - moveEvent.clientX)));
-        setWidth(newWidth);
-      }
-      if (direction === 'top' || direction === 'top-left') {
-        const newHeight = Math.max(400, Math.min(window.innerHeight - 100, startHeight + (startY - moveEvent.clientY)));
-        setHeight(newHeight);
-      }
+      const newWidth = Math.max(340, Math.min(window.innerWidth - 60, startWidth + (startX - moveEvent.clientX)));
+      setWidth(newWidth);
     };
 
     const handleMouseUp = () => {
@@ -71,7 +89,7 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -104,7 +122,7 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
     setMessages(prev => [...prev, { id: botMsgId, role: 'bot', text: '' }]);
 
     try {
-      const response = await api.query(repoName, userText, sessionId);
+      const response = await api.query(repoName, userText);
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
@@ -146,31 +164,26 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
 
   return (
     <div 
-      style={{ width: `${width}px`, height: `${height}px` }}
-      className="fixed bottom-24 right-6 min-w-[40vw] min-h-[80vh] max-w-[calc(100vw-32px)] max-h-[calc(100vh-100px)] flex flex-col bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-2xl overflow-hidden z-[99998] transition-shadow duration-300 font-sans text-foreground"
+      style={{ width: `${width}px` }}
+      className="fixed top-0 right-0 h-screen max-w-[calc(100vw-32px)] flex flex-col bg-background/98 backdrop-blur-md border-l border-border shadow-2xl overflow-hidden z-[99998] transition-all duration-150 font-sans text-foreground"
     >
+      {/* Left-edge drag handle for resizing the side panel */}
       <div 
-        className="absolute left-0 top-0 w-1.5 h-full cursor-ew-resize hover:bg-primary/20 transition-colors z-[100000]"
-        onMouseDown={(e) => startResize(e, 'left')}
+        className="absolute left-0 top-0 w-1.5 h-full cursor-ew-resize hover:bg-primary/40 transition-colors z-[100000]"
+        onMouseDown={startResize}
+        title="Drag to resize panel width"
       />
-      <div 
-        className="absolute left-0 top-0 h-1.5 w-full cursor-ns-resize hover:bg-primary/20 transition-colors z-[100000]"
-        onMouseDown={(e) => startResize(e, 'top')}
-      />
-      <div 
-        className="absolute left-0 top-0 w-3.5 h-3.5 cursor-nwse-resize hover:bg-primary/20 transition-colors z-[100001]"
-        onMouseDown={(e) => startResize(e, 'top-left')}
-      />
-      <div className="py-2 px-4 border-b border-border bg-background flex items-center justify-between">
+
+      {/* Extension Right Panel Top Header */}
+      <div className="py-3 px-4 border-b border-border bg-card/60 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          
           <div className="min-w-0">
             <Typography
               variant="body"
               as="h3"
-              className="font-semibold text-sm leading-none flex items-center gap-1.5"
+              className="font-semibold text-sm leading-none flex items-center gap-1.5 text-foreground"
             >
-              askRepo Chat
+              askRepo Panel
             </Typography>
             <Typography
               variant="mono"
@@ -180,17 +193,32 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
             </Typography>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          onClick={onClose}
-          className="text-muted-foreground hover:cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
-        >
-          <X className="size-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {repoName && messages.length > 1 && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={handleClearHistory}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title="Clear chat history"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={onClose}
+            className="text-muted-foreground hover:cursor-pointer hover:bg-destructive/20 hover:text-destructive transition-colors"
+            title="Close side panel"
+          >
+            <X className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      <Conversation className='bg-background'>
+      {/* Main Panel Chat Conversation Scroll Area */}
+      <Conversation className="bg-background flex-1 overflow-hidden">
         <ConversationContent>
           {messages.map((message, messageIndex) => {
             const isLastMessage = messageIndex === messages.length - 1;
@@ -202,7 +230,7 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
                   <MessageContent>
                     {message.text === '' && isLoading && isLastMessage ? (
                       <div className="flex items-center gap-1.5 py-1 px-2">
-                        <TextShimmer className='font-sans text-sm' duration={1}>
+                        <TextShimmer className="font-sans text-sm" duration={1}>
                           Thinking...
                         </TextShimmer>
                       </div>
@@ -236,7 +264,8 @@ export default function ChatScreen({ repoName, onClose }: ChatScreenProps) {
         </ConversationContent>
       </Conversation>
 
-      <div className=" p-2 bg-background">
+      {/* Fixed Bottom Panel Input Bar */}
+      <div className="p-3 border-t border-border bg-card/40 shrink-0">
         <div className="relative flex items-center gap-2">
           <Input
             type="text"

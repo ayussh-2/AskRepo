@@ -9,3 +9,4 @@ psycopg==3.3.4
 psycopg-binary==3.3.4
 pydantic-settings==2.14.1
 httpx==0.28.1
+psutil==7.2.0

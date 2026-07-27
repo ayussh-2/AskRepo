@@ -1,6 +1,6 @@
 import httpx
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 from google import genai
 from google.genai import types
 import tiktoken
@@ -16,7 +16,6 @@ client = genai.Client(api_key=settings.gemini_api_key)
 async def embed_query(query: str) -> List[float]:
     headers = {"Authorization": f"Bearer {settings.modal_embed_token}"}
     payload = {"query": query}
-
 
     async with httpx.AsyncClient(timeout=60.0) as http_client:
         response = await http_client.post(
@@ -48,7 +47,7 @@ def search_chunk(query_embedding: List[float], repo_name: str, top_k: int = 4) -
     extra = [i for i in imports if i.id not in seen_ids]
     return results + extra
 
-def sanitize_context(chunks, max_chars: int = 12000) -> str:
+def sanitize_context(chunks: List[RepoChunk], max_chars: int = 12000) -> str:
     seen = set()
     unique_chunks = []
 
@@ -99,17 +98,17 @@ def estimate_tokens(text: str) -> int:
     encoding = tiktoken.get_encoding("cl100k_base")
     return len(encoding.encode(text))
 
-def summarize_old_messages(old_messages: List[Dict[str, str]]) -> str:
+async def summarize_old_messages(old_messages: List[Dict[str, str]]) -> str:
     formatted_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in old_messages])
     prompt = f"Summarize the key information and questions discussed in this conversation context in 2-3 sentences:\n{formatted_text}"
-    response = client.models.generate_content(
+    response = await client.aio.models.generate_content(
         model=settings.gemini_llm_model,
         contents=prompt
     )
-    return response.text.strip()
+    return response.text.strip() if response.text else ""
 
-def process_history_and_summarize(session_id: str, new_query: str) -> List[Dict[str, str]]:
-    history = get_chat_history(session_id)
+async def process_history_and_summarize(user_id: str, repo_name: str, new_query: str) -> List[Dict[str, str]]:
+    history = get_chat_history(user_id, repo_name)
     total_tokens = sum(estimate_tokens(m["content"]) for m in history) + estimate_tokens(new_query)
 
     if total_tokens > 6000:
@@ -117,63 +116,76 @@ def process_history_and_summarize(session_id: str, new_query: str) -> List[Dict[
         if len(history) > keep_count:
             to_summarize = history[:-keep_count]
             to_keep = history[-keep_count:]
-            summary_text = summarize_old_messages(to_summarize)
+            summary_text = await summarize_old_messages(to_summarize)
             summary_message = {
                 "role": "model",
                 "content": f"[Summary of previous conversation: {summary_text}]"
             }
             history = [summary_message] + to_keep
-            save_all_history(session_id, history)
+            save_all_history(user_id, repo_name, history)
 
     return history
 
-async def chat_stream(chunks: List[RepoChunk], query: str, session_id: str):
-    history = []
-    if session_id:
-        history = process_history_and_summarize(session_id, query)
-        add_chat_message(session_id, "user", query)
+async def chat_stream_handler(user_id: str, repo_name: str, query: str, top_k: int = 4):
+    try:
+        # 1. Async embedding vector search
+        query_embedding = await embed_query(query)
+        chunks = search_chunk(query_embedding, repo_name, top_k)
 
-    context = sanitize_context(chunks)
-    system_instruction = f"""
-    You are a chatbot called askRepo.
-    Rules:
-    - Use the repository context to answer repository-specific questions. Mention relevant file paths when possible.
-    - If the user asks a general programming, technical, or conceptual question not specific to this repository (e.g., "what is a framework"), answer it using your general knowledge.
-    - If a repository-specific question is asked (e.g., "does this project use Auth0?") and the context does not contain the answer, say:
-      "I could not find that information in the retrieved repository context."
-    - Do not invent code, files, or architecture details that are not present in the context.
-    - When showing code, use markdown code blocks with the correct language.
-    - Keep the conversation friendly and helpful.
-    Repository Context:
-    {context}
-    """.strip()
+        if len(chunks) == 0:
+            yield "I could not find any indexed code chunks for this repository. Please make sure the repository is ingested."
+            return
 
-    contents = []
-    for msg in history:
+        # 2. Async conversation history processing (scoped by user_id & repo_name)
+        history = await process_history_and_summarize(user_id, repo_name, query)
+        add_chat_message(user_id, repo_name, "user", query)
+
+        context = sanitize_context(chunks)
+        system_instruction = f"""
+You are a chatbot called askRepo.
+Rules:
+- Use the repository context to answer repository-specific questions. Mention relevant file paths when possible.
+- If the user asks a general programming, technical, or conceptual question not specific to this repository, answer it using your general knowledge.
+- If a repository-specific question is asked and the context does not contain the answer, say:
+  "I could not find that information in the retrieved repository context."
+- Do not invent code, files, or architecture details that are not present in the context.
+- When showing code, use markdown code blocks with the correct language.
+- Keep the conversation friendly and helpful.
+Repository Context:
+{context}
+""".strip()
+
+        contents = []
+        for msg in history:
+            contents.append(
+                types.Content(
+                    role=msg["role"],
+                    parts=[types.Part.from_text(text=msg["content"])]
+                )
+            )
         contents.append(
             types.Content(
-                role=msg["role"],
-                parts=[types.Part.from_text(text=msg["content"])]
+                role="user",
+                parts=[types.Part.from_text(text=query)]
             )
         )
-    contents.append(
-        types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=query)]
+
+        config = types.GenerateContentConfig(system_instruction=system_instruction)
+        response = await client.aio.models.generate_content_stream(
+            model=settings.gemini_llm_model,
+            contents=contents,
+            config=config
         )
-    )
 
-    config = types.GenerateContentConfig(system_instruction=system_instruction)
-    response = await client.aio.models.generate_content_stream(
-        model=settings.gemini_llm_model,
-        contents=contents,
-        config=config
-    )
+        full_response = ""
+        async for chunk in response:
+            if chunk.text:
+                full_response += chunk.text
+                yield chunk.text
 
-    full_response = ""
-    async for chunk in response:
-        full_response += chunk.text
-        yield chunk.text
+        if full_response:
+            add_chat_message(user_id, repo_name, "model", full_response)
 
-    if session_id:
-        add_chat_message(session_id, "model", full_response)
+    except Exception as e:
+        print(f"Error in chat_stream_handler: {e}")
+        yield f"\n[Error: {str(e)}]"

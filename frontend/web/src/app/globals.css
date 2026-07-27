@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0d0d0e;
+  --background: #010102;
   --foreground: #f7f8f8;
 }
 
@@ -11,14 +11,28 @@
 }
 
 body {
-  background: #0d0d0e;
+  background: #010102;
   color: #f7f8f8;
   font-family: var(--font-geist-sans), sans-serif;
   overflow: hidden;
   height: 100vh;
 }
 
-/* Custom scrollbar styling for a sleek dark look */
+/* Shimmer animation keyframes for text-shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+/* Custom scrollbar styling for sleek dark look */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
