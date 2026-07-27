@@ -1,0 +1,73 @@
+{
+  "file_path": "test_rust.rs",
+  "language": "rust",
+  "symbols": [
+    {
+      "name": "ConnectionState",
+      "type": "enum_item",
+      "start_line": 2,
+      "end_line": 5,
+      "language": "rust",
+      "parent": "",
+      "docstring": "Defines the state of the network connection.",
+      "source": "pub enum ConnectionState {\n    Connected,\n    Disconnected,\n}",
+      "token_count": 12
+    },
+    {
+      "name": "Sender",
+      "type": "trait_item",
+      "start_line": 8,
+      "end_line": 10,
+      "language": "rust",
+      "parent": "",
+      "docstring": "A trait for objects that can send messages.",
+      "source": "pub trait Sender {\n    fn send(&self, msg: &str);\n}",
+      "token_count": 16
+    },
+    {
+      "name": "Client",
+      "type": "struct_item",
+      "start_line": 13,
+      "end_line": 15,
+      "language": "rust",
+      "parent": "",
+      "docstring": "The main network client struct.",
+      "source": "pub struct Client {\n    id: u32,\n}",
+      "token_count": 11
+    },
+    {
+      "name": "Client",
+      "type": "impl_item",
+      "start_line": 19,
+      "end_line": 24,
+      "language": "rust",
+      "parent": "",
+      "docstring": "Implementation block for the Client struct. This acts as a parent for the functions inside.",
+      "source": "impl Client {\n    /// Creates a new Client instance.\n    pub fn new() -> Self {\n        Client { id: 1 }\n    }\n}",
+      "token_count": 30
+    },
+    {
+      "name": "new",
+      "type": "function_item",
+      "start_line": 21,
+      "end_line": 23,
+      "language": "rust",
+      "parent": "Client",
+      "docstring": "Creates a new Client instance.",
+      "source": "    pub fn new() -> Self {\n        Client { id: 1 }\n    }",
+      "token_count": 18
+    },
+    {
+      "name": "connect_all",
+      "type": "function_item",
+      "start_line": 27,
+      "end_line": 30,
+      "language": "rust",
+      "parent": "",
+      "docstring": "Global utility function to connect all clients.",
+      "source": "pub fn connect_all() {\n    // Standard comment, should be ignored by docstring extractor.\n    println!(\"Connecting...\");\n}",
+      "token_count": 25
+    }
+  ],
+  "orphan_lines_count": 10
+}

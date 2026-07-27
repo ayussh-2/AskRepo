@@ -1,0 +1,84 @@
+{
+  "file_path": "test_ts.ts",
+  "language": "typescript",
+  "symbols": [
+    {
+      "name": "User",
+      "type": "export_statement",
+      "start_line": 4,
+      "end_line": 6,
+      "language": "typescript",
+      "parent": "",
+      "docstring": "Interface representing a user.",
+      "source": "export interface User {\n    id: string;\n}",
+      "token_count": 10
+    },
+    {
+      "name": "User",
+      "type": "interface_declaration",
+      "start_line": 4,
+      "end_line": 6,
+      "language": "typescript",
+      "parent": "User",
+      "docstring": "Interface representing a user.",
+      "source": "export interface User {\n    id: string;\n}",
+      "token_count": 10
+    },
+    {
+      "name": "UserManager",
+      "type": "export_statement",
+      "start_line": 11,
+      "end_line": 16,
+      "language": "typescript",
+      "parent": "",
+      "docstring": "Manages user state.",
+      "source": "export class UserManager {\n    /** Creates a new user object. */\n    public createUser(): User {\n        return { id: \"1\" };\n    }\n}",
+      "token_count": 31
+    },
+    {
+      "name": "UserManager",
+      "type": "class_declaration",
+      "start_line": 11,
+      "end_line": 16,
+      "language": "typescript",
+      "parent": "UserManager",
+      "docstring": "Manages user state.",
+      "source": "export class UserManager {\n    /** Creates a new user object. */\n    public createUser(): User {\n        return { id: \"1\" };\n    }\n}",
+      "token_count": 31
+    },
+    {
+      "name": "createUser",
+      "type": "method_definition",
+      "start_line": 13,
+      "end_line": 15,
+      "language": "typescript",
+      "parent": "UserManager",
+      "docstring": "",
+      "source": "    public createUser(): User {\n        return { id: \"1\" };\n    }",
+      "token_count": 17
+    },
+    {
+      "name": "fetchData",
+      "type": "export_statement",
+      "start_line": 20,
+      "end_line": 22,
+      "language": "typescript",
+      "parent": "",
+      "docstring": "Arrow function mapped to a lexical_declaration The extractor should capture \"fetchData\" as the name",
+      "source": "export const fetchData = async () => {\n    return true;\n};",
+      "token_count": 13
+    },
+    {
+      "name": "fetchData",
+      "type": "lexical_declaration",
+      "start_line": 20,
+      "end_line": 22,
+      "language": "typescript",
+      "parent": "fetchData",
+      "docstring": "Arrow function mapped to a lexical_declaration The extractor should capture \"fetchData\" as the name",
+      "source": "export const fetchData = async () => {\n    return true;\n};",
+      "token_count": 13
+    }
+  ],
+  "orphan_lines_count": 10
+}
