@@ -19,9 +19,12 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://askrepo.ayussh.me",
         "https://github.com",
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:5173"
     ],
+    allow_origin_regex=r"https://.*\.ayussh\.me",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
