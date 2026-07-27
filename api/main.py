@@ -3,7 +3,7 @@ from fastapi import Body, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from contextlib import asynccontextmanager
-from fastapi.responses import StreamingResponse, JSONEncoder
+from fastapi.responses import StreamingResponse
 
 from config import settings
 from db.db import engine
@@ -36,10 +36,8 @@ async def ingest_handler(repo_url: str = Body(..., embed=True)):
     if not repo_url:
         return error_response(400, "No Repo Url given", "Invalid URL")
 
-    # Reorganize Git trigger logic to fire off GitLab pipeline
     try:
-        # Create pipeline run status entry in Neon DB
-        # extract repo name from url
+      
         cleaned_url = repo_url.rstrip("/")
         if cleaned_url.endswith(".git"):
             cleaned_url = cleaned_url[:-4]
@@ -57,7 +55,6 @@ async def ingest_handler(repo_url: str = Body(..., embed=True)):
             session.refresh(db_status)
             job_id = db_status.id
 
-        # Trigger Pipeline
         pipeline_info = await trigger_ingestion_pipeline(repo_url)
 
         return success_response(202, f"GitLab ingestion pipeline triggered for {repo_name}", {

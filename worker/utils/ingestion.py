@@ -23,6 +23,15 @@ def update_ingestion_status(repo_name: str, commit_sha: str, status: str, error_
                 db_status.updated_at = datetime.now(timezone.utc)
                 session.add(db_status)
                 session.commit()
+            else:
+                new_status = IngestionStatus(
+                    repo_name=repo_name,
+                    commit_sha=commit_sha,
+                    status=status,
+                    error_message=error_message
+                )
+                session.add(new_status)
+                session.commit()
     except Exception as e:
         print(f"Failed to update ingestion status for {repo_name}: {e}")
 

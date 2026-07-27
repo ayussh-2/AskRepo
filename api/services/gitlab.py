@@ -6,7 +6,7 @@ async def trigger_ingestion_pipeline(repo_url: str) -> dict:
 
     data = {
         "token": settings.gitlab_trigger_token,
-        "ref": "main",  # default branch to run the pipeline
+        "ref": "main",
         "variables[TARGET_REPO_URL]": repo_url
     }
 

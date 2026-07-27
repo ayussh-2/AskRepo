@@ -6,6 +6,8 @@ import modal
 app = modal.App("askrepo-embed")
 
 
+from fastapi import HTTPException, Request
+
 image = (
     modal.Image.debian_slim()
     .apt_install("curl", "zstd")
@@ -33,11 +35,10 @@ class EmbedServer:
         time.sleep(3) 
 
     @modal.fastapi_endpoint(method="POST")
-    def embed(self, payload: dict, request):
+    def embed(self, payload: dict, request: Request):
         import os
 
         import httpx
-        from fastapi import HTTPException
 
         auth = request.headers.get("authorization", "")
         if auth != f"Bearer {os.environ['MODAL_EMBED_TOKEN']}":

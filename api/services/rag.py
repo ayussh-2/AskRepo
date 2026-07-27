@@ -16,9 +16,7 @@ async def embed_query(query: str) -> List[float]:
     headers = {"Authorization": f"Bearer {settings.modal_embed_token}"}
     payload = {"query": query}
 
-    # Modal cold starts (container spin-up + Ollama serve) can take several
-    # seconds if the endpoint hasn't been hit recently, so this timeout is
-    # generous compared to a typical local call.
+
     async with httpx.AsyncClient(timeout=30.0) as http_client:
         response = await http_client.post(
             settings.modal_embed_url, json=payload, headers=headers
@@ -138,16 +136,16 @@ async def chat_stream(chunks: List[RepoChunk], query: str, session_id: str):
     system_instruction = f"""
     You are a chatbot called askRepo.
     Rules:
-    - Answer ONLY using the repository context.
-    - Mention relevant file paths when possible.
-    - If the answer is not contained in the context, say:
+    - Use the repository context to answer repository-specific questions. Mention relevant file paths when possible.
+    - If the user asks a general programming, technical, or conceptual question not specific to this repository (e.g., "what is a framework"), answer it using your general knowledge.
+    - If a repository-specific question is asked (e.g., "does this project use Auth0?") and the context does not contain the answer, say:
       "I could not find that information in the retrieved repository context."
-      - Do not invent code or architecture details.
-      - When showing code, use markdown code blocks with the correct language.
-      - You do not need to add "Based on the repository context", just keep the conversation friendly.
-      Repository Context:
-      {context}
-      """.strip()
+    - Do not invent code, files, or architecture details that are not present in the context.
+    - When showing code, use markdown code blocks with the correct language.
+    - Keep the conversation friendly and helpful.
+    Repository Context:
+    {context}
+    """.strip()
 
     contents = []
     for msg in history:
