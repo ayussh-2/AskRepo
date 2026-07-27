@@ -8,7 +8,7 @@ ingest_job:
     - if: $TARGET_REPO_URL
   before_script:
     # Install git and system build tools required for tree-sitter C bindings
-    - apt-get update && apt-get install -y git build-essential curl
+    - apt-get update && apt-get install -y git build-essential curl zstd
 
     # Install and start Ollama in the background
     - curl -fsSL https://ollama.com/install.sh | sh

@@ -17,7 +17,7 @@ async def embed_query(query: str) -> List[float]:
     payload = {"query": query}
 
 
-    async with httpx.AsyncClient(timeout=30.0) as http_client:
+    async with httpx.AsyncClient(timeout=60.0) as http_client:
         response = await http_client.post(
             settings.modal_embed_url, json=payload, headers=headers
         )

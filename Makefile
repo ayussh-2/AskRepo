@@ -1,4 +1,4 @@
-.PHONY: dev dev-api dev-worker deploy-embed dev-frontend dev-webapp
+.PHONY: dev dev-api dev-worker deploy-embed dev-frontend dev-webapp migrate
 
 dev: dev-api
 
@@ -16,3 +16,6 @@ dev-frontend:
 
 dev-webapp:
 	cd webapp && npm start
+
+migrate:
+	python scripts/migrate.py
