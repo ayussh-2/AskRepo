@@ -1,12 +1,16 @@
-// Utility helpers for class names, API calls, and code tokenization
-
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-export const BASE_URL = "http://localhost:8000";
+export const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://askrepo-api.ayussh.me";
 
-export async function apiCall(path: string, method: string = "GET", body?: unknown, token?: string | null) {
+export async function apiCall(
+  path: string,
+  method: string = "GET",
+  body?: unknown,
+  token?: string | null,
+) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
@@ -42,13 +46,68 @@ export function tokenizeCode(code: string): CodeToken[] {
   let index = 0;
 
   const keywords = new Set([
-    "class", "const", "function", "return", "import", "export", "default",
-    "from", "if", "else", "for", "while", "break", "continue", "switch", "case",
-    "try", "catch", "finally", "throw", "new", "true", "false", "null", "undefined",
-    "var", "let", "def", "as", "in", "is", "and", "or", "not", "package", "struct",
-    "interface", "impl", "fn", "type", "public", "private", "protected", "static",
-    "async", "await", "nil", "func", "go", "select", "chan", "map", "range", "pub",
-    "self", "Self", "where", "trait", "enum", "match", "mut", "ref"
+    "class",
+    "const",
+    "function",
+    "return",
+    "import",
+    "export",
+    "default",
+    "from",
+    "if",
+    "else",
+    "for",
+    "while",
+    "break",
+    "continue",
+    "switch",
+    "case",
+    "try",
+    "catch",
+    "finally",
+    "throw",
+    "new",
+    "true",
+    "false",
+    "null",
+    "undefined",
+    "var",
+    "let",
+    "def",
+    "as",
+    "in",
+    "is",
+    "and",
+    "or",
+    "not",
+    "package",
+    "struct",
+    "interface",
+    "impl",
+    "fn",
+    "type",
+    "public",
+    "private",
+    "protected",
+    "static",
+    "async",
+    "await",
+    "nil",
+    "func",
+    "go",
+    "select",
+    "chan",
+    "map",
+    "range",
+    "pub",
+    "self",
+    "Self",
+    "where",
+    "trait",
+    "enum",
+    "match",
+    "mut",
+    "ref",
   ]);
 
   while (index < code.length) {

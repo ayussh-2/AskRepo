@@ -2,7 +2,7 @@ from lib.ast_parser.parser import parse_directory
 from utils.chunker import chunk_parse_result
 from utils.embedding import generate_and_store_embeddings
 from utils.manage_repo import delete_repo_folder
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select
 from db.db import engine
 from db.models import IngestionStatus
 from datetime import datetime, timezone
@@ -12,7 +12,7 @@ def update_ingestion_status(repo_name: str, commit_sha: str, status: str, error_
         with Session(engine) as session:
             db_status = session.exec(
                 select(IngestionStatus)
-                .where(func.lower(IngestionStatus.repo_name) == repo_name.lower())
+                .where(IngestionStatus.repo_name == repo_name)
                 .order_by(IngestionStatus.created_at.desc())
                 .limit(1)
             ).first()

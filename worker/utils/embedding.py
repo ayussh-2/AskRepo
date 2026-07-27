@@ -52,12 +52,6 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
             print(f"Error on batch {i} to {i + len(batch_contents)}: {e}")
 
     with Session(engine) as session:
-        # Delete previous chunks to prevent duplicates
-        from sqlalchemy import text
-        print(f"Cleaning up previous chunks for {repo_name}...")
-        session.execute(text("DELETE FROM repo_chunks WHERE repo_name = :name"), {"name": repo_name})
-        session.commit()
-
         for i in range(0, len(valid_chunks), batch_size):
             batch_chunks = valid_chunks[i:i + batch_size]
             batch_embeddings = all_embeddings[i:i + batch_size]

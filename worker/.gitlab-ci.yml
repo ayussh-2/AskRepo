@@ -7,15 +7,20 @@ ingest_job:
   rules:
     - if: $TARGET_REPO_URL
   before_script:
+    # Install git and system build tools required for tree-sitter C bindings
     - apt-get update && apt-get install -y git build-essential curl zstd
 
+    # Install and start Ollama in the background
     - curl -fsSL https://ollama.com/install.sh | sh
     - ollama serve > /dev/null 2>&1 &
 
+    # Wait for Ollama service to start up (up to 15s)
     - sleep 10
 
+    # Pull embedding model
     - ollama pull embeddinggemma
 
+    # Install Python project dependencies
     - pip install -r requirements.txt
   script:
     - python cli.py

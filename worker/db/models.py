@@ -24,7 +24,6 @@ class IngestionStatus(SQLModel, table=True):
     repo_name: str = Field(index=True)
     commit_sha: str = Field(index=True)
     status: str = Field(default="pending")
-    user_id: Optional[str] = Field(default=None, index=True)  # Google user 'sub' ID
     error_message: Optional[str] = Field(default=None, nullable=True)
     created_at: Optional[datetime] = Field(
         default_factory=lambda: datetime.now(timezone.utc),
