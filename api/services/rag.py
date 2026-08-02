@@ -1,8 +1,6 @@
 import httpx
 from collections import defaultdict
 from typing import List, Dict, Optional
-from google import genai
-from google.genai import types
 import tiktoken
 from config import settings
 from db.db import engine
@@ -10,8 +8,17 @@ from db.models import RepoChunk
 from sqlmodel import Session, select
 from lib.redis import get_chat_history, add_chat_message, save_all_history
 from sqlalchemy import func
+from services.llm import generate_text_with_fallback, generate_stream_with_fallback
 
-client = genai.Client(api_key=settings.gemini_api_key)
+try:
+    from flashrank import Ranker, RerankRequest
+    ranker = Ranker(model_name="ms-marco-TinyBERT-L-2-v2")
+    HAS_FLASHRANK = True
+    print("[Reranker] FlashRank ONNX Reranker initialized successfully (model: ms-marco-TinyBERT-L-2-v2).")
+except Exception as e:
+    print(f"[Reranker Warning] FlashRank initialization failed: {e}. Falling back to standard vector search.")
+    ranker = None
+    HAS_FLASHRANK = False
 
 async def embed_query(query: str) -> List[float]:
     headers = {"Authorization": f"Bearer {settings.modal_embed_token}"}
@@ -25,13 +32,13 @@ async def embed_query(query: str) -> List[float]:
         data = response.json()
         return data["embedding"]
 
-def search_chunk(query_embedding: List[float], repo_name: str, top_k: int = 4) -> List[RepoChunk]:
+def search_chunk(query_embedding: List[float], repo_name: str, candidate_k: int = 15) -> List[RepoChunk]:
     with Session(engine) as session:
         results = session.exec(
             select(RepoChunk)
             .where(func.lower(RepoChunk.repo_name) == repo_name.lower())
             .order_by(RepoChunk.embedding.cosine_distance(query_embedding))
-            .limit(top_k)
+            .limit(candidate_k)
         ).all()
 
         file_paths = list(set(r.file_path for r in results))
@@ -45,7 +52,30 @@ def search_chunk(query_embedding: List[float], repo_name: str, top_k: int = 4) -
 
     seen_ids = {r.id for r in results}
     extra = [i for i in imports if i.id not in seen_ids]
-    return results + extra
+    return list(results) + extra
+
+def rerank_chunks(query: str, candidate_chunks: List[RepoChunk], top_k: int = 4) -> List[RepoChunk]:
+    if not candidate_chunks:
+        return []
+
+    if not HAS_FLASHRANK or ranker is None:
+        return candidate_chunks[:top_k]
+
+    try:
+        passages = [
+            {"id": idx, "text": f"[File: {chunk.file_path} | Symbol: {chunk.symbol_name}]\n{chunk.chunk_text}"}
+            for idx, chunk in enumerate(candidate_chunks)
+        ]
+        rerank_req = RerankRequest(query=query, passages=passages)
+        results = ranker.rerank(rerank_req)
+
+        top_indices = [item["id"] for item in results[:top_k]]
+        reranked_chunks = [candidate_chunks[idx] for idx in top_indices if idx < len(candidate_chunks)]
+        print(f"[Reranker] FlashRank reranked {len(candidate_chunks)} candidates -> selected top {len(reranked_chunks)} chunks for query: '{query[:40]}...'")
+        return reranked_chunks
+    except Exception as e:
+        print(f"[Reranker Warning] Reranking failed: {e}. Returning raw vector results.")
+        return candidate_chunks[:top_k]
 
 def sanitize_context(chunks: List[RepoChunk], max_chars: int = 12000) -> str:
     seen = set()
@@ -101,11 +131,7 @@ def estimate_tokens(text: str) -> int:
 async def summarize_old_messages(old_messages: List[Dict[str, str]]) -> str:
     formatted_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in old_messages])
     prompt = f"Summarize the key information and questions discussed in this conversation context in 2-3 sentences:\n{formatted_text}"
-    response = await client.aio.models.generate_content(
-        model=settings.gemini_llm_model,
-        contents=prompt
-    )
-    return response.text.strip() if response.text else ""
+    return await generate_text_with_fallback(prompt)
 
 async def process_history_and_summarize(user_id: str, repo_name: str, new_query: str) -> List[Dict[str, str]]:
     history = get_chat_history(user_id, repo_name)
@@ -126,17 +152,27 @@ async def process_history_and_summarize(user_id: str, repo_name: str, new_query:
 
     return history
 
-async def chat_stream_handler(user_id: str, repo_name: str, query: str, top_k: int = 4):
+async def chat_stream_handler(
+    user_id: str,
+    repo_name: str,
+    query: str,
+    top_k: int = 4,
+    provider: Optional[str] = None,
+    model: Optional[str] = None
+):
     try:
-        # 1. Async embedding vector search
+        # 1. First-stage: Vector similarity search (retrieve 15 candidate chunks)
         query_embedding = await embed_query(query)
-        chunks = search_chunk(query_embedding, repo_name, top_k)
+        candidate_chunks = search_chunk(query_embedding, repo_name, candidate_k=15)
 
-        if len(chunks) == 0:
+        if len(candidate_chunks) == 0:
             yield "I could not find any indexed code chunks for this repository. Please make sure the repository is ingested."
             return
 
-        # 2. Async conversation history processing (scoped by user_id & repo_name)
+        # 2. Second-stage: FlashRank Cross-Encoder Reranking (select top_k best chunks)
+        chunks = rerank_chunks(query, candidate_chunks, top_k=top_k)
+
+        # 3. Async conversation history processing (scoped by user_id & repo_name)
         history = await process_history_and_summarize(user_id, repo_name, query)
         add_chat_message(user_id, repo_name, "user", query)
 
@@ -155,37 +191,23 @@ Repository Context:
 {context}
 """.strip()
 
-        contents = []
-        for msg in history:
-            contents.append(
-                types.Content(
-                    role=msg["role"],
-                    parts=[types.Part.from_text(text=msg["content"])]
-                )
-            )
-        contents.append(
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=query)]
-            )
-        )
-
-        config = types.GenerateContentConfig(system_instruction=system_instruction)
-        response = await client.aio.models.generate_content_stream(
-            model=settings.gemini_llm_model,
-            contents=contents,
-            config=config
-        )
-
         full_response = ""
-        async for chunk in response:
-            if chunk.text:
-                full_response += chunk.text
-                yield chunk.text
+        async for chunk in generate_stream_with_fallback(
+            history,
+            query,
+            system_instruction,
+            preferred_provider=provider,
+            preferred_model=model
+        ):
+            full_response += chunk
+            yield chunk
 
-        if full_response:
+        if full_response and not full_response.startswith("[Error:"):
             add_chat_message(user_id, repo_name, "model", full_response)
 
     except Exception as e:
         print(f"Error in chat_stream_handler: {e}")
         yield f"\n[Error: {str(e)}]"
+
+
+

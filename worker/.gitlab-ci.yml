@@ -1,21 +1,25 @@
 stages:
   - ingest
 
+cache:
+  key: "ollama-models-v1"
+  paths:
+    - .ollama/
+
 ingest_job:
   stage: ingest
   image: python:3.11-slim
   rules:
     - if: $TARGET_REPO_URL
   before_script:
+    - mkdir -p .ollama && export OLLAMA_MODELS="$(pwd)/.ollama"
     - apt-get update && apt-get install -y git build-essential curl zstd
-
-    - curl -fsSL https://ollama.com/install.sh | sh
+    - if ! command -v ollama &> /dev/null; then curl -fsSL https://ollama.com/install.sh | sh; fi
     - ollama serve > /dev/null 2>&1 &
-
-    - sleep 10
-
-    - ollama pull embeddinggemma
-
+    - sleep 5
+    - if ! ollama list | grep -q "embeddinggemma"; then ollama pull embeddinggemma; fi
     - pip install -r requirements.txt
   script:
+    - export OLLAMA_MODELS="$(pwd)/.ollama"
     - python cli.py
+

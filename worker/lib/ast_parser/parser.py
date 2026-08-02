@@ -7,23 +7,19 @@ from pathlib import Path
 from typing import Optional
 import warnings
 import json
-
-from utils.constants import ENCODER_MODEL, IGNORED_DIRS, TEXT_EXTENSIONS
-
-warnings.filterwarnings("ignore", category=FutureWarning)
-
 import tiktoken
 from tree_sitter_languages import get_parser as ts_get_parser
 
+from utils.constants import ENCODER_MODEL, IGNORED_DIRS, TEXT_EXTENSIONS, IGNORED_EXTENSIONS
 from .data_models import ParseResult
 from .language_config import EXTENSION_TO_LANGUAGE, SYMBOL_NODE_TYPES
 from .ast_walker import walk, flatten, find_orphan_lines
 
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 def detect_language(file_path: str) -> Optional[str]:
     ext = Path(file_path).suffix.lower()
     return EXTENSION_TO_LANGUAGE.get(ext)
-
 
 def parse_file(file_path: str) -> Optional[ParseResult]:
     """
@@ -94,6 +90,9 @@ def parse_directory(
             continue
 
         ext = file_path.suffix.lower()
+        if ext in IGNORED_EXTENSIONS:
+            continue
+
         rel_path = str(file_path.relative_to(root)).replace("\\", "/")
 
         if ext in TEXT_EXTENSIONS:
@@ -117,17 +116,11 @@ def parse_directory(
 
     return ast_results, text_results
 
-
 def save_ast_results_to_json(results: list, dir: str | Path) -> None:
-    """
-    Saves a list of AST extraction results to individual JSON files.
-    Creates an 'ast' subdirectory inside the provided repository path.
-    """
     ast_output_dir = Path(dir) / "tree_sitter_results"
     ast_output_dir.mkdir(parents=True, exist_ok=True)
     encoder = tiktoken.get_encoding(ENCODER_MODEL)
     for result in results:
-        # Create a safe filename by replacing path separators with underscores
         safe_name = result.file_path.replace("/", "_").replace("\\", "_") + ".json"
         output_file = ast_output_dir / safe_name
 

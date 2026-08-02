@@ -21,17 +21,14 @@ Repositories are chunked by logical AST symbols (functions, classes, methods) vi
 
 ## Features
 
-- **Dual Interfaces:**
-  - **Browser Extension (`frontend/extension`):** Injected directly into GitHub repository pages via Shadow DOM with a sleek floating chat panel. Automatically detects current repo URLs.
-  - **Web Dashboard (`frontend/web`):** Full Next.js 16 application for managing indexed repositories, running sync checks, and chatting with codebases directly in the browser.
+- **Web Dashboard (`frontend/web`):** Full Next.js 16 application for managing indexed repositories, running sync checks, and chatting with codebases directly in the browser with model selection & real-time streaming.
 - **AST-Based Symbol Chunking:** Codebases are parsed using Tree-Sitter across supported languages to extract logical code structures (classes, functions, interfaces, structs, methods) rather than arbitrary line slices.
 - **Decoupled Heavy Operations:**
   - **GitLab CI/CD Ingestion Worker (`worker/`):** Heavy repository cloning, Tree-Sitter AST parsing, and bulk vector embedding run on-demand inside GitLab CI runners, offloading heavy CPU/RAM work from the primary API server.
   - **Serverless Query Embedding (`embed-service/`):** Live user queries are embedded on demand via a Modal.com serverless endpoint running `embeddinggemma`, scaling to zero when idle to conserve resources.
-- **Vector Similarity Search:** High-dimensional code symbol embeddings (768-dim `embeddinggemma`) stored and queried via PostgreSQL `pgvector` cosine similarity.
-- **Session Management & Auto-Summarization:** Conversation histories are cached in Redis. When chat history approaches LLM context limits, older turns are automatically summarized by Gemini to maintain context without token truncation.
-- **Live Commit Sync Check:** Automatically compares local indexed commit SHAs against remote GitHub `HEAD` commits to notify users when an index update is needed.
-- **Streaming Responses:** Streams responses in real time using the Google GenAI SDK.
+- **Vector Similarity Search & FlashRank Reranking:** High-dimensional code symbol embeddings stored in PostgreSQL `pgvector`, with FlashRank ONNX cross-encoder reranking for maximum precision context retrieval.
+- **Multi-LLM Fallback Support:** Seamless failover across Google Gemini, Groq (Llama 3.3), and Mistral AI with live model selection.
+- **Session Management & Auto-Summarization:** Conversation histories are cached in Redis with automatic background summarization.
 
 ---
 
@@ -40,9 +37,9 @@ Repositories are chunked by logical AST symbols (functions, classes, methods) vi
 ```mermaid
 graph TD
     subgraph Clients ["Clients"]
-        Extension["Browser Extension (WXT / React 19)"]
         Web["Web Application (Next.js 16)"]
     end
+
 
     subgraph Backend ["API Service (api/)"]
         API["FastAPI API Server (Docker)"]

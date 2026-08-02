@@ -1,5 +1,7 @@
 from typing import Optional
+from pydantic import BaseModel
 from fastapi import Body, FastAPI, Query, Depends
+
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from contextlib import asynccontextmanager
@@ -147,20 +149,43 @@ async def ingest_handler(
 
 from lib.redis import get_chat_history, clear_chat_history
 
+class QueryRequest(BaseModel):
+    query: str
+    repo_name: Optional[str] = None
+    top_k: Optional[int] = 4
+    provider: Optional[str] = None
+    model: Optional[str] = None
+
 @app.post("/query", dependencies=[Depends(rate_limit)])
 async def query_ask_handler(
-    repo_name: str = Query(...),
-    query: str = Body(..., embed=True),
+    request_body: Optional[QueryRequest] = Body(None),
+    repo_name: Optional[str] = Query(None),
+    query: Optional[str] = Query(None),
     top_k: int = 4,
+    provider: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
-    if not query or not repo_name:
+    final_query = (request_body.query if request_body and request_body.query else query) or ""
+    final_repo = (request_body.repo_name if request_body and request_body.repo_name else repo_name) or ""
+    final_top_k = request_body.top_k if (request_body and request_body.top_k) else top_k
+    final_provider = request_body.provider if (request_body and request_body.provider) else provider
+    final_model = request_body.model if (request_body and request_body.model) else model
+
+    if not final_query or not final_repo:
         return error_response(400, "query and repo_name are required")
 
     user_id = current_user.get("sub", "anonymous")
 
     return StreamingResponse(
-        chat_stream_handler(user_id, repo_name, query, top_k),
+        chat_stream_handler(
+            user_id,
+            final_repo,
+            final_query,
+            final_top_k,
+            provider=final_provider,
+            model=final_model
+        ),
         media_type="text/plain",
         headers={
             "Cache-Control": "no-cache",
@@ -168,6 +193,8 @@ async def query_ask_handler(
             "X-Accel-Buffering": "no",
         }
     )
+
+
 
 @app.get("/chat-history", dependencies=[Depends(rate_limit)])
 def get_chat_history_handler(
