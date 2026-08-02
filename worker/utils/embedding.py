@@ -12,11 +12,12 @@ client = ollama.Client(host=settings.ollama_base_url)
 DOCUMENT_PREFIX = "title: none | text: "
 
 def embed_batch(batch_contents):
+    embed_provider = os.environ.get("EMBEDDING_PROVIDER", "local").lower().strip()
     modal_url = os.environ.get("MODAL_EMBED_URL")
     modal_token = os.environ.get("MODAL_EMBED_TOKEN")
 
-    # If Modal serverless URL is configured, use Modal GPU embedding for fast processing
-    if modal_url:
+    # Use Modal GPU serverless embedding if EMBEDDING_PROVIDER=modal
+    if embed_provider == "modal" and modal_url:
         headers = {"Authorization": f"Bearer {modal_token}"} if modal_token else {}
         prefixed_texts = [f"{DOCUMENT_PREFIX}{t}" for t in batch_contents]
         embeddings = []
@@ -27,12 +28,14 @@ def embed_batch(batch_contents):
                 embeddings.append(resp.json()["embedding"])
         return embeddings
     else:
+        # Default to 0-cost Local Ollama CPU embedding
         prefixed_texts = [f"{DOCUMENT_PREFIX}{t}" for t in batch_contents]
         response = client.embed(
             model=settings.embedding_model,
             input=prefixed_texts
         )
         return response.embeddings
+
 
 def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
     if not all_chunks:

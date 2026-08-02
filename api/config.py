@@ -27,10 +27,13 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://user:password@localhost/dbname"
     redis_url: str = "redis://localhost:6379/0"
     session_ttl: int = 86400
+    embedding_provider: str = "local" # "local" (Ollama CPU) or "modal" (Modal Serverless GPU)
+    ollama_base_url: str = "http://localhost:11434"
     modal_embed_url: str = "https://your-workspace--askrepo-embed-embed.modal.run"
     modal_embed_token: str = ""
     embedding_model: str = "embeddinggemma"
     env: str = "production"
+
 
     # GitLab Trigger settings
     gitlab_project_id: str = ""

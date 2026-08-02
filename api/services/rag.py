@@ -21,16 +21,31 @@ except Exception as e:
     HAS_FLASHRANK = False
 
 async def embed_query(query: str) -> List[float]:
-    headers = {"Authorization": f"Bearer {settings.modal_embed_token}"}
-    payload = {"query": query}
+    provider = (settings.embedding_provider or "local").lower().strip()
 
+    if provider == "modal" and settings.modal_embed_url:
+        headers = {"Authorization": f"Bearer {settings.modal_embed_token}"} if settings.modal_embed_token else {}
+        payload = {"query": query}
+        async with httpx.AsyncClient(timeout=60.0) as http_client:
+            response = await http_client.post(
+                settings.modal_embed_url, json=payload, headers=headers
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["embedding"]
+
+    # Local Ollama embedding fallback (0-cost local CPU embedding for dev)
     async with httpx.AsyncClient(timeout=60.0) as http_client:
-        response = await http_client.post(
-            settings.modal_embed_url, json=payload, headers=headers
-        )
+        url = f"{settings.ollama_base_url.rstrip('/')}/api/embeddings"
+        payload = {
+            "model": settings.embedding_model,
+            "prompt": f"title: none | text: {query}"
+        }
+        response = await http_client.post(url, json=payload)
         response.raise_for_status()
         data = response.json()
         return data["embedding"]
+
 
 def search_chunk(query_embedding: List[float], repo_name: str, candidate_k: int = 15) -> List[RepoChunk]:
     with Session(engine) as session:
@@ -181,7 +196,8 @@ async def chat_stream_handler(
         You are a chatbot called askRepo.
         Rules:
         1. Use the provided Repository Context to answer questions about this codebase.
-        2. CITATION RULE: Whenever answering a codebase question using the context, ALWAYS append a section titled `### 📁 Sources & Citations` at the bottom of your answer. List the exact file paths (and symbol names if applicable) referenced, e.g.:
+        2. CITATION RULE: Whenever answering a codebase question using the context, ALWAYS append a section titled `### Sources & Citations` at the bottom of your answer. List the exact file paths (and symbol names if applicable) referenced, e.g.:
+
         - `lib/response.js` (`res.send`)
         - `lib/router/index.js` (`Router.prototype.handle`)
         3. OUT-OF-CONTEXT / UNKNOWN RULE: If the user asks a question about this repository's codebase, features, or internal functions and the information is NOT present in the retrieved Repository Context, respond strictly with:

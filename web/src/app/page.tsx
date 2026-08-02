@@ -187,10 +187,21 @@ export default function Home() {
       const res = await apiCall("/ingest", "POST", { repo_url: repoUrlInput }, token);
       const result = await res.json();
       if (res.ok && result.success) {
+        const repoName = result.data.repo_name;
+        setRepoUrlInput("");
+
+        // If repository is already indexed, skip progress screen and open chat directly
+        if (result.data.already_indexed || result.data.status === "completed") {
+          await loadRepos();
+          if (repoName) {
+            handleStartChatSession(repoName);
+            return;
+          }
+        }
+
         setScreen("progress");
         setJobId(result.data.job_id);
         setProgressData({ status: result.data.status || "pending", error_message: null });
-        setRepoUrlInput("");
       } else {
         setIngestError(result.message || "Failed to trigger ingestion.");
       }
@@ -200,6 +211,7 @@ export default function Home() {
       setIngestLoading(false);
     }
   };
+
 
   const handleCheckSync = async (repoName: string) => {
     if (!token) return;
@@ -232,10 +244,16 @@ export default function Home() {
       const res = await apiCall("/ingest", "POST", { repo_url: repoUrl }, token);
       const result = await res.json();
       if (res.ok && result.success) {
+        if (result.data.already_indexed || result.data.status === "completed") {
+          setCheckingSync((prev) => ({ ...prev, [repoName]: "up-to-date" }));
+          handleStartChatSession(repoName);
+          return;
+        }
         setScreen("progress");
         setJobId(result.data.job_id);
         setProgressData({ status: result.data.status || "pending", error_message: null });
       } else {
+
         setCheckingSync((prev) => ({ ...prev, [repoName]: "error" }));
       }
     } catch {
