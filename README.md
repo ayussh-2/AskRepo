@@ -26,8 +26,12 @@
 
 Unlike naive RAG systems that slice code by arbitrary line numbers, `askRepo` parses repositories at the **Abstract Syntax Tree (AST)** level using **Tree-Sitter** to extract logical code symbols (functions, classes, interfaces, and methods). It evaluates code context using **Two-Stage Vector Retrieval + FlashRank Reranking** and generates streaming responses with automatic multi-provider failover (**Google Gemini, Groq / Meta Llama 3.3, and Mistral AI**).
 
+> **Note on Browser Extension:**
+> The Chrome Browser Extension codebase is preserved and available on the [`extension`](https://github.com/ayussh-2/AskRepo/tree/extension) branch. The `main` branch represents the primary web-first application.
+
 > **Note on Query Embedding & Modal:**
 > Live user queries are converted into vector embeddings before searching PostgreSQL. By default, setting `EMBEDDING_PROVIDER=local` in `api/.env` uses your local Ollama CPU instance (`embeddinggemma`) with zero external cloud dependencies. Optionally, setting `EMBEDDING_PROVIDER=modal` routes embedding requests to Modal.com (a serverless Python cloud runner that runs `embed-service/embed_app.py` on demand and scales to zero when idle).
+
 
 ---
 
