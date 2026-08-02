@@ -6,7 +6,7 @@ DOCKER_IMAGE ?= askrepo-api
 DOCKER_TAG ?= latest
 FULL_IMAGE = $(DOCKER_USER)/$(DOCKER_IMAGE):$(DOCKER_TAG)
 
-.PHONY: dev dev-api dev-worker deploy-embed dev-web migrate docker-build docker-push docker-run
+.PHONY: dev dev-api dev-worker deploy-embed dev-web eval migrate docker-build docker-push docker-run
 
 dev: dev-api
 
@@ -22,8 +22,11 @@ deploy-embed:
 dev-web:
 	cd frontend/web && bun dev
 
+eval:
+	python evals/run_eval.py
 
 migrate:
+
 	python scripts/migrate.py
 
 docker-build:

@@ -20,12 +20,10 @@ export const ProgressScreen: React.FC<ProgressScreenProps> = ({
   onStartChat,
   onBackHome,
 }) => {
-  // const isPending =
-  //   progressData?.status === "pending" ||
-  //   progressData?.status === "processing" ||
-  //   !progressData;
-
-  const isPending = true;
+  const isPending =
+    progressData?.status === "pending" ||
+    progressData?.status === "processing" ||
+    !progressData;
 
   return (
     <div className="flex-1 flex items-center justify-center p-6 w-full">
