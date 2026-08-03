@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Send, Loader2, Cpu, ChevronDown } from "lucide-react";
+import { Send, Loader2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface ChatInputProps {
@@ -55,22 +55,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     <div className="p-3 md:p-4 w-full shrink-0">
       <div className="max-w-3xl lg:max-w-4xl w-full mx-auto flex flex-col gap-2">
         <div className="relative flex items-center bg-[#131416] border border-[#23252a] rounded-xl px-2 py-1 focus-within:border-[#5e6ad2]/50 transition-colors">
-          {/* Provider Dropdown inside input field */}
-          <div className="flex items-center gap-1.5 pl-2 pr-2.5 py-1 border-r border-[#23252a] text-[#8a8f98] shrink-0">
-            <img
-              src={activeOpt.icon}
-              alt={activeOpt.label}
-              className={`size-3.5 object-contain shrink-0 ${provider === "auto" ? "invert size-5" : ""}`}
-              onError={(e) => {
-                // Hide icon if missing
-                (e.target as HTMLElement).style.display = "none";
-              }}
-            />
+          {/* Provider Dropdown inside input field (Icon only in bar) */}
+          <div className="relative flex items-center justify-center pl-2.5 pr-2 py-1.5 border-r border-[#23252a] text-[#8a8f98] shrink-0 hover:text-[#f7f8f8] transition-colors group cursor-pointer" title="Select LLM Provider / Model">
+            <div className="flex items-center gap-1.5 pointer-events-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeOpt.icon}
+                alt={activeOpt.label}
+                className={`size-4 object-contain shrink-0 ${provider === "auto" ? "invert" : ""}`}
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+              <ChevronDown
+                size={12}
+                className="text-[#62666d] group-hover:text-[#f7f8f8] transition-colors"
+              />
+            </div>
             <select
               value={provider}
               onChange={(e) => onProviderChange?.(e.target.value)}
               disabled={isLoading}
-              className="bg-transparent text-xs text-[#f7f8f8] font-medium focus:outline-none cursor-pointer pr-1 appearance-none [&>option]:bg-[#131416] [&>option]:text-[#f7f8f8]"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed [&>option]:bg-[#131416] [&>option]:text-[#f7f8f8] [&>option]:py-1"
               title="Select LLM Provider / Model"
             >
               {PROVIDER_OPTIONS.map((opt) => (
@@ -79,10 +85,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 </option>
               ))}
             </select>
-            <ChevronDown
-              size={12}
-              className="text-[#62666d] pointer-events-none -ml-1"
-            />
           </div>
 
           {/* Text Input */}

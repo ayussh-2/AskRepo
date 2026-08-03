@@ -1,6 +1,17 @@
 import * as React from "react";
-import { Plus, RefreshCw, Loader2, CheckCircle2, AlertCircle, MessageSquare, ChevronLeft, LogOut, X } from "lucide-react";
+import {
+  Plus,
+  RefreshCw,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  MessageSquare,
+  ChevronLeft,
+  LogOut,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export interface RepoItem {
   repo_name: string;
@@ -14,7 +25,10 @@ export interface SidebarProps {
   sidebarOpen: boolean;
   mobileSidebarOpen: boolean;
   loadingRepos: boolean;
-  checkingSync: Record<string, "checking" | "up-to-date" | "out-of-sync" | "error">;
+  checkingSync: Record<
+    string,
+    "checking" | "up-to-date" | "out-of-sync" | "error"
+  >;
   userName: string;
   onSelectRepo: (repoName: string) => void;
   onNewIngest: () => void;
@@ -50,11 +64,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Your Repositories
         </h3>
         {repos.length > 0 && (
-          <button 
+          <button
             onClick={onReloadRepos}
             className="text-xs text-[#8a8f98] hover:text-[#f7f8f8] flex items-center gap-1 transition-colors cursor-pointer"
           >
-            <RefreshCw size={11} className={loadingRepos ? "animate-spin" : ""} />
+            <RefreshCw
+              size={11}
+              className={loadingRepos ? "animate-spin" : ""}
+            />
           </button>
         )}
       </div>
@@ -73,24 +90,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {repos.map((repo) => {
             const syncStatus = checkingSync[repo.repo_name];
             const isActive = activeRepo === repo.repo_name;
+            const isProcessing =
+              repo.status === "processing" || repo.status === "pending";
+
             return (
-              <div 
+              <div
                 key={repo.repo_name}
-                className={`p-3 rounded-lg border flex flex-col gap-2 transition-all duration-150 group cursor-pointer ${
-                  isActive 
-                    ? "bg-[#202020] border-[#5e6ad2]/40" 
-                    : "bg-[#131416]/40 border-[#23252a] hover:bg-[#1a1b1e]"
+                className={`p-3 rounded-lg border flex flex-col gap-2 transition-all duration-150 group ${
+                  isProcessing
+                    ? "opacity-75 bg-[#131416]/30 border-[#23252a] cursor-not-allowed"
+                    : isActive
+                      ? "bg-[#202020] border-[#5e6ad2]/40 cursor-pointer"
+                      : "bg-[#131416]/40 border-[#23252a] hover:bg-[#1a1b1e] cursor-pointer"
                 }`}
-                onClick={() => onSelectRepo(repo.repo_name)}
+                onClick={() => {
+                  if (isProcessing) {
+                    toast.info(
+                      `Repository ${repo.repo_name} is currently being processed. Please wait until indexing finishes.`
+                    );
+                  } else {
+                    onSelectRepo(repo.repo_name);
+                  }
+                }}
               >
                 <div className="flex items-center justify-between gap-2 min-w-0">
                   <div className="flex items-center gap-2 truncate">
-                    <MessageSquare size={13} className={isActive ? "text-[#5e6ad2]" : "text-[#8a8f98]"} />
-                    <span className={`text-[13px] font-medium truncate block ${isActive ? "text-[#f7f8f8]" : "text-[#d0d6e0]"}`}>
+                    <MessageSquare
+                      size={13}
+                      className={isActive ? "text-[#5e6ad2]" : "text-[#8a8f98]"}
+                    />
+                    <span
+                      className={`text-[13px] font-medium truncate block ${isActive ? "text-[#f7f8f8]" : "text-[#d0d6e0]"}`}
+                    >
                       {repo.repo_name}
                     </span>
                   </div>
-                  
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -100,39 +135,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     title="Check sync"
                     className="text-[#8a8f98] hover:text-[#f7f8f8] disabled:text-[#62666d] p-1 rounded hover:bg-[#202020] shrink-0 cursor-pointer"
                   >
-                    <RefreshCw size={11} className={syncStatus === "checking" ? "animate-spin" : ""} />
+                    <RefreshCw
+                      size={11}
+                      className={
+                        syncStatus === "checking" ? "animate-spin" : ""
+                      }
+                    />
                   </button>
                 </div>
 
-                {syncStatus && (
-                  <div className="flex items-center justify-between gap-1 text-[11px] bg-[#0d0d0e] px-2 py-1 rounded">
-                    {syncStatus === "up-to-date" && (
-                      <span className="text-[#27a644] font-medium flex items-center gap-1">
-                        <CheckCircle2 size={10} /> Up to date
-                      </span>
-                    )}
-                    {syncStatus === "out-of-sync" && (
-                      <>
-                        <span className="text-amber-400 font-medium flex items-center gap-1">
-                          <AlertCircle size={10} /> Outdated
-                        </span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSyncNow(repo.repo_name);
-                          }}
-                          className="text-[#5e6ad2] hover:text-[#828fff] font-bold underline cursor-pointer"
-                        >
-                          Sync
-                        </button>
-                      </>
-                    )}
-                    {syncStatus === "error" && (
-                      <span className="text-red-400 font-medium flex items-center gap-1">
-                        <AlertCircle size={10} /> Check failed
-                      </span>
-                    )}
+                {repo.status === "processing" || repo.status === "pending" ? (
+                  <div className="flex items-center gap-1.5 text-[11px] bg-[#5e6ad2]/10 border border-[#5e6ad2]/30 px-2 py-1 rounded text-[#5e6ad2]  ">
+                    <Loader2 size={10} className="animate-spin" />
+                    <span className="font-medium">Processing...</span>
                   </div>
+                ) : (
+                  syncStatus && (
+                    <div className="flex items-center justify-between gap-1 text-[11px] bg-[#0d0d0e] px-2 py-1 rounded">
+                      {syncStatus === "up-to-date" && (
+                        <span className="text-[#27a644] font-medium flex items-center gap-1">
+                          <CheckCircle2 size={10} /> Up to date
+                        </span>
+                      )}
+                      {syncStatus === "out-of-sync" && (
+                        <>
+                          <span className="text-amber-400 font-medium flex items-center gap-1">
+                            <AlertCircle size={10} /> Outdated
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSyncNow(repo.repo_name);
+                            }}
+                            className="text-[#5e6ad2] hover:text-[#828fff] font-bold underline cursor-pointer"
+                          >
+                            Sync
+                          </button>
+                        </>
+                      )}
+                      {syncStatus === "error" && (
+                        <span className="text-red-400 font-medium flex items-center gap-1">
+                          <AlertCircle size={10} /> Check failed
+                        </span>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             );
@@ -145,23 +192,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* 1. Desktop Sidebar */}
-      <aside 
+      <aside
         className={`hidden md:flex flex-col justify-between shrink-0 bg-[#0d0d0e] border-r border-[#23252a] transition-all duration-300 relative ${
           sidebarOpen ? "w-[280px]" : "w-0 overflow-hidden border-r-0"
         }`}
       >
         <div className="p-4 flex flex-col gap-5 flex-1 overflow-hidden">
           <div className="flex items-center justify-between px-1">
-            <span 
+            <span
               onClick={onNewIngest}
               className="text-[15px] font-semibold text-[#f7f8f8] tracking-tight cursor-pointer"
             >
               askRepo Workspace
             </span>
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
+
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onCloseSidebar}
               className="h-7 w-7 text-[#8a8f98] hover:text-[#f7f8f8]"
               title="Close sidebar"
@@ -188,7 +235,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="text-[10px] font-bold text-[#8a8f98] uppercase tracking-widest font-mono block">
                 Account
               </span>
-              <span className="text-[13px] text-[#d0d6e0] font-medium truncate block mt-0.5" title={userName}>
+              <span
+                className="text-[13px] text-[#d0d6e0] font-medium truncate block mt-0.5"
+                title={userName}
+              >
                 {userName}
               </span>
             </div>
@@ -208,21 +258,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* 2. Mobile Sidebar Drawer */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div 
+          <div
             onClick={onCloseMobileSidebar}
             className="fixed inset-0 bg-black/70 transition-opacity duration-300"
           />
-          
+
           <aside className="relative flex flex-col justify-between w-[280px] h-full bg-[#0d0d0e] border-r border-[#23252a] p-4 shadow-2xl z-10">
             <div className="flex flex-col gap-5 flex-1 overflow-hidden">
               <div className="flex items-center justify-between px-1">
                 <span className="text-[15px] font-semibold text-[#f7f8f8] tracking-tight">
                   askRepo Workspace
                 </span>
-                
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={onCloseMobileSidebar}
                   className="h-7 w-7 text-[#8a8f98] hover:text-[#f7f8f8]"
                 >

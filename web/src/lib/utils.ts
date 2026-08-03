@@ -10,6 +10,7 @@ export async function apiCall(
   method: string = "GET",
   body?: unknown,
   token?: string | null,
+  onUnauthorized?: () => void
 ) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -22,11 +23,15 @@ export async function apiCall(
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  if (res.status === 401 && onUnauthorized) {
+    onUnauthorized();
+  }
+
   return res;
 }
 
 export function getUserName(token: string): string {
-  if (token === "mock_google_id_token") return "Demo User";
   try {
     const payload = token.split(".")[1];
     const decoded = JSON.parse(atob(payload));
@@ -34,6 +39,72 @@ export function getUserName(token: string): string {
   } catch {
     return "User";
   }
+}
+
+/**
+ * Robustly retrieves the authentication token.
+ * Automatically extracts and persists id_token from Google OAuth URL hash redirects.
+ */
+export function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+
+  // 1. Check Google OAuth URL hash fragment (#id_token=...)
+  if (window.location.hash) {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const idToken = params.get("id_token");
+    if (idToken) {
+      localStorage.setItem("google_auth_token", idToken);
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return idToken;
+    }
+  }
+
+  // 2. Check URL query parameters (?token=...)
+  if (window.location.search) {
+    const params = new URLSearchParams(window.location.search);
+    const qToken = params.get("token");
+    if (qToken) {
+      localStorage.setItem("google_auth_token", qToken);
+      return qToken;
+    }
+  }
+
+  // 3. Fallback to localStorage
+  return localStorage.getItem("google_auth_token");
+}
+
+/**
+ * Validates whether the given string is a valid GitHub or GitLab repository URL or shorthand.
+ * Examples of valid inputs:
+ * - https://github.com/owner/repo
+ * - https://gitlab.com/owner/repo
+ * - github.com/owner/repo
+ * - owner/repo (e.g. expressjs/express)
+ */
+export function isValidRepoUrl(input: string): boolean {
+  if (!input || !input.trim()) return false;
+  const str = input.trim();
+  const fullUrlPattern = /^(https?:\/\/)?(www\.)?(github\.com|gitlab\.com)\/[\w.-]+\/[\w.-]+\/?$/i;
+  const shorthandPattern = /^[\w.-]+\/[\w.-]+$/;
+  return fullUrlPattern.test(str) || shorthandPattern.test(str);
+}
+
+/**
+ * Normalizes input to a full HTTPS GitHub/GitLab URL.
+ */
+export function normalizeRepoUrl(input: string): string {
+  let str = input.trim();
+  if (str.endsWith(".git")) {
+    str = str.slice(0, -4);
+  }
+  if (!str.startsWith("http://") && !str.startsWith("https://")) {
+    if (str.startsWith("github.com/") || str.startsWith("gitlab.com/")) {
+      return `https://${str}`;
+    }
+    return `https://github.com/${str}`;
+  }
+  return str;
 }
 
 export interface CodeToken {

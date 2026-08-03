@@ -20,7 +20,7 @@ deploy-embed:
 	cd embed-service && python -m modal deploy embed_app.py
 
 dev-web:
-	cd frontend/web && bun dev
+	cd web && bun dev
 
 eval:
 	python evals/run_eval.py
@@ -37,3 +37,5 @@ docker-push: docker-build
 
 docker-run:
 	docker run -d -p 8000:8000 --env-file api/.env --name askrepo-api-container $(FULL_IMAGE)
+
+	

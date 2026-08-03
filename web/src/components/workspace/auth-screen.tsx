@@ -10,15 +10,11 @@ import {
 
 export interface AuthScreenProps {
   onLogin: () => void;
-  onDemoLogin: () => void;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   onLogin,
-  onDemoLogin,
 }) => {
-  const isDev = process.env.NODE_ENV !== "production";
-
   return (
     <div className="flex-1 flex justify-center items-center bg-[#010102] text-[#f7f8f8] p-4 min-h-screen relative font-sans antialiased">
       <Card className="w-full max-w-sm p-8 text-center border-[#23252a] bg-[#0d0d0e]">
@@ -34,22 +30,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
         <CardContent className="p-0 flex flex-col gap-3">
           <Button
-            variant="default"
             onClick={onLogin}
-            className="w-full py-2.5 text-[14px]"
+            className="w-full py-2.5 text-[14px] bg-[#5e6ad2] text-white hover:bg-[#4e58b5] font-medium transition-colors"
           >
             Sign In with Google
           </Button>
-
-          {isDev && (
-            <Button
-              variant="secondary"
-              onClick={onDemoLogin}
-              className="w-full py-2.5 text-[14px] text-[#8a8f98]"
-            >
-              Continue as Guest
-            </Button>
-          )}
         </CardContent>
       </Card>
     </div>

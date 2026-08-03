@@ -51,6 +51,8 @@ export interface IngestScreenProps {
   ingestLoading: boolean;
   ingestError: string;
   repos: RepoItem[];
+  isJobActive?: boolean;
+  activeJobRepoName?: string | null;
   onChangeUrl: (url: string) => void;
   onIndexRepo: () => void;
   onSelectRepo: (repoName: string) => void;
@@ -61,6 +63,8 @@ export const IngestScreen: React.FC<IngestScreenProps> = ({
   ingestLoading,
   ingestError,
   repos,
+  isJobActive,
+  activeJobRepoName,
   onChangeUrl,
   onIndexRepo,
   onSelectRepo,
@@ -92,13 +96,29 @@ export const IngestScreen: React.FC<IngestScreenProps> = ({
                 if (
                   e.key === "Enter" &&
                   repoUrlInput.trim() &&
-                  !ingestLoading
+                  !ingestLoading &&
+                  !isJobActive
                 ) {
                   onIndexRepo();
                 }
               }}
+              disabled={ingestLoading || isJobActive}
             />
           </div>
+
+          {isJobActive && (
+            <div className="flex items-center gap-2.5 text-amber-300 text-xs bg-amber-950/30 px-3.5 py-2.5 rounded-lg border border-amber-800/40 font-medium">
+              <Loader2 className="animate-spin size-4 text-amber-400 shrink-0" />
+              <span>
+                An ingestion job for{" "}
+                <strong className="text-amber-200">
+                  {activeJobRepoName || "a repository"}
+                </strong>{" "}
+                is currently running in the background. Please wait for it to
+                complete before indexing a new repository.
+              </span>
+            </div>
+          )}
 
           {ingestError && (
             <div className="flex items-center gap-2 text-red-400 text-xs bg-red-950/20 px-3 py-2 rounded border border-red-900/30">
@@ -110,7 +130,7 @@ export const IngestScreen: React.FC<IngestScreenProps> = ({
           <Button
             variant="default"
             onClick={onIndexRepo}
-            disabled={!repoUrlInput.trim() || ingestLoading}
+            disabled={!repoUrlInput.trim() || ingestLoading || isJobActive}
             className="w-full py-2.5 text-sm"
           >
             {ingestLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
