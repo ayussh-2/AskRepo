@@ -32,9 +32,9 @@ Unlike naive RAG systems that slice code by arbitrary line numbers, `askRepo` pa
 ## Demo Walkthrough
 
 <p align="center">
-  <video src="web/public/demo.mp4" width="100%" controls="controls" muted="muted" autoplay="autoplay" loop="loop">
-    Your browser does not support the video tag.
-  </video>
+  
+ <img src="https://ik.imagekit.io/9bnbyc64r/ezgif-1a039550c07afe24.gif" width="80%" alt="askRepo — chat with any GitHub repository" />
+  
 </p>
 
 > **Note on Browser Extension:**
