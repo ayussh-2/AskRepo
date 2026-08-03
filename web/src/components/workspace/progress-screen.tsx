@@ -10,7 +10,11 @@ import {
 } from "@/components/ui/card";
 
 export interface ProgressScreenProps {
-  progressData: { status: string; error_message: string | null } | null;
+  progressData: {
+    status: string;
+    error_message: string | null;
+    repo_name?: string;
+  } | null;
   onStartChat: () => void;
   onBackHome: () => void;
 }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import ChatClientPage from "./chat-client";
 
 export function generateStaticParams() {
@@ -8,5 +9,9 @@ export function generateStaticParams() {
 
 export default async function ChatPage({ params }: { params: Promise<{ repo: string }> }) {
   const resolvedParams = await params;
-  return <ChatClientPage repo={resolvedParams.repo} />;
+  return (
+    <Suspense fallback={null}>
+      <ChatClientPage repo={resolvedParams.repo} />
+    </Suspense>
+  );
 }

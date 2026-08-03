@@ -80,6 +80,7 @@ export default function DashboardClientPage() {
   const [progressData, setProgressData] = useState<{
     status: string;
     error_message: string | null;
+    repo_name?: string;
   } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
