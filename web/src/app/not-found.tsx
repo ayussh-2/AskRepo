@@ -1,9 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import { FileQuestion, Home as HomeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 
 export default function NotFound() {
   return (
@@ -14,15 +18,13 @@ export default function NotFound() {
             <FileQuestion className="w-8 h-8" />
           </div>
           <div className="space-y-1">
-            <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded bg-[#1e2024] text-[#8a8f98] inline-block border border-[#23252a]">
-              404 NOT FOUND
-            </span>
             <CardTitle className="text-2xl font-bold text-[#f7f8f8] tracking-tight">
               Page Not Found
             </CardTitle>
           </div>
           <CardDescription className="text-sm text-[#8a8f98] leading-relaxed">
-            The page or repository route you are looking for does not exist or has been moved.
+            The page or repository route you are looking for does not exist or
+            has been moved.
           </CardDescription>
         </CardHeader>
 
@@ -30,10 +32,10 @@ export default function NotFound() {
           <Link href="/" passHref>
             <Button
               variant="default"
-              className="w-full py-2.5 text-sm font-medium bg-white text-black hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2"
             >
               <HomeIcon size={16} />
-              Return to Dashboard
+              Return to Home
             </Button>
           </Link>
         </CardContent>

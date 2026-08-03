@@ -33,7 +33,19 @@ export default function RootLayout({
         <RepoProvider>
           {children}
         </RepoProvider>
-        <Toaster position="bottom-right" theme="dark" />
+        <Toaster
+          position="top-right"
+          theme="dark"
+          toastOptions={{
+            style: {
+              fontFamily: "var(--font-geist-sans), sans-serif",
+              backgroundColor: "#0d0d0e",
+              borderColor: "#23252a",
+              color: "#f7f8f8",
+            },
+            className: "font-sans border border-[#23252a] bg-[#0d0d0e] text-[#f7f8f8] shadow-xl rounded-xl text-xs",
+          }}
+        />
       </body>
     </html>
   );

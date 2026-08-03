@@ -15,6 +15,10 @@ from services.gitlab import trigger_ingestion_pipeline
 from services.rag import chat_stream_handler
 from services.limiter import rate_limit, ingest_rate_limit
 from services.auth import get_current_user
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("api")
 
 app = FastAPI()
 
@@ -78,12 +82,17 @@ async def ingest_handler(
             cleaned_url = cleaned_url[:-4]
         parts = [p for p in cleaned_url.split("/") if p]
         repo_name = f"{parts[-2]}/{parts[-1]}" if len(parts) >= 2 else cleaned_url
+        user_id = current_user.get("sub")
+
+        logger.info(f"[Ingest] User '{user_id}' requested ingestion for repo '{repo_name}' ({repo_url})")
 
         remote_commit_sha = get_remote_commit_sha(repo_url)
         if not remote_commit_sha:
+            logger.warning(f"[Ingest] Could not fetch remote commit SHA for '{repo_url}'")
             return error_response(400, "Could not fetch remote commit hash. Verify the repository URL is public and correct.")
 
-        # Check if already indexed at this commit
+        logger.info(f"[Ingest] Remote commit SHA for '{repo_name}': {remote_commit_sha}")
+
         with Session(engine) as session:
             latest_job = session.exec(
                 select(IngestionStatus)
@@ -94,22 +103,22 @@ async def ingest_handler(
             ).first()
 
             if latest_job and latest_job.commit_sha == remote_commit_sha:
-                # Check if this specific user already has a completed record for it
+                logger.info(f"[Ingest] Repo '{repo_name}' is already indexed at commit {remote_commit_sha}. Reusing existing index for user '{user_id}'.")
                 user_job = session.exec(
                     select(IngestionStatus)
                     .where(func.lower(IngestionStatus.repo_name) == repo_name.lower())
-                    .where(IngestionStatus.user_id == current_user.get("sub"))
+                    .where(IngestionStatus.user_id == user_id)
                     .where(IngestionStatus.status == "completed")
                     .where(IngestionStatus.commit_sha == remote_commit_sha)
                 ).first()
 
                 if not user_job:
-                    # Create a completed record for this user so they see it in their repo list
+                    logger.info(f"[Ingest] Creating repository association for user '{user_id}' on repo '{repo_name}'")
                     new_user_job = IngestionStatus(
                         repo_name=repo_name,
                         commit_sha=remote_commit_sha,
                         status="completed",
-                        user_id=current_user.get("sub")
+                        user_id=user_id
                     )
                     session.add(new_user_job)
                     session.commit()
@@ -126,11 +135,12 @@ async def ingest_handler(
                     "already_indexed": True
                 })
 
+            logger.info(f"[Ingest] Repo '{repo_name}' needs indexing. Creating new pending job for user '{user_id}'...")
             db_status = IngestionStatus(
                 repo_name=repo_name,
                 commit_sha=remote_commit_sha,
                 status="pending",
-                user_id=current_user.get("sub")
+                user_id=user_id
             )
             session.add(db_status)
             session.commit()
@@ -138,6 +148,7 @@ async def ingest_handler(
             job_id = db_status.id
 
         pipeline_info = await trigger_ingestion_pipeline(repo_url)
+        logger.info(f"[Ingest] Pipeline triggered for '{repo_name}'. Pipeline ID: {pipeline_info.get('id')}")
 
         return success_response(202, f"GitLab ingestion pipeline triggered for {repo_name}", {
             "job_id": job_id,
@@ -145,6 +156,7 @@ async def ingest_handler(
             "already_indexed": False
         })
     except Exception as e:
+        logger.error(f"[Ingest] Error during ingestion trigger for '{repo_url}': {e}", exc_info=True)
         return error_response(500, f"Failed to trigger ingestion pipeline: {e}")
 
 from lib.redis import get_chat_history, clear_chat_history

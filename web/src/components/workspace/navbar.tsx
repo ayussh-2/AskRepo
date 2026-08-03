@@ -12,7 +12,7 @@ export interface NavbarProps {
 
 export function Navbar({ token, onLogout }: NavbarProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#23252a]/60 bg-[#010102]/75 backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-50 pt-4 bg-[#010102]/75 backdrop-blur-md">
       <div className="mx-auto flex h-[52px] max-w-[1200px] items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center flex-shrink-0">

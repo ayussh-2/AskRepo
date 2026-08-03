@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { apiCall, getStoredToken } from "@/lib/utils";
+import { getStoredToken, clearUserSession } from "@/lib/utils";
+import { fetchReposApi, checkRepoSyncApi, triggerIngestApi } from "@/lib/api";
 import { RepoItem } from "@/components/workspace/sidebar";
 
 interface RepoContextType {
@@ -11,6 +12,7 @@ interface RepoContextType {
   loadRepos: () => Promise<void>;
   handleCheckSync: (repoName: string) => Promise<void>;
   handleSyncNow: (repoName: string) => Promise<void>;
+  clearSession: () => void;
 }
 
 const RepoContext = createContext<RepoContextType | undefined>(undefined);
@@ -22,46 +24,39 @@ export function RepoProvider({ children }: { children: React.ReactNode }) {
 
   const [token] = useState<string | null>(() => getStoredToken());
 
+  const clearSession = useCallback(() => {
+    setRepos([]);
+    setCheckingSync({});
+    clearUserSession();
+  }, []);
+
   const loadRepos = useCallback(async () => {
     const activeToken = token || getStoredToken();
     if (!activeToken) return;
     setLoadingRepos(true);
-    try {
-      const res = await apiCall("/repos", "GET", null, activeToken);
-      if (res.ok) {
-        const result = await res.json();
-        if (result.success) {
-          setRepos(result.data.repos || []);
-        }
-      }
-    } catch {
-      console.error("Failed to load repositories.");
-    } finally {
-      setLoadingRepos(false);
+    const res = await fetchReposApi(activeToken);
+    if (res.success && res.data) {
+      setRepos(res.data.repos || []);
     }
+    setLoadingRepos(false);
   }, [token]);
 
-  // Fetch repos ONCE when user token is available via microtask async callback
   useEffect(() => {
     let active = true;
     const activeToken = token || getStoredToken();
     if (!activeToken) return;
 
-    apiCall("/repos", "GET", null, activeToken)
-      .then((res) => res.json())
-      .then((result) => {
-        if (result.success && active) {
-          setRepos(result.data.repos || []);
-        }
-      })
-      .catch(() => {});
+    fetchReposApi(activeToken).then((res) => {
+      if (res.success && active && res.data) {
+        setRepos(res.data.repos || []);
+      }
+    });
 
     return () => {
       active = false;
     };
   }, [token]);
 
-  // Auto-poll /repos if any repository is currently processing or pending
   useEffect(() => {
     const hasProcessingRepo = repos.some(
       (r) => r.status === "processing" || r.status === "pending",
@@ -79,22 +74,15 @@ export function RepoProvider({ children }: { children: React.ReactNode }) {
     const activeToken = token || getStoredToken();
     if (!activeToken) return;
     setCheckingSync((prev) => ({ ...prev, [repoName]: "checking" }));
-    try {
-      const res = await apiCall(`/check-sync?repo_name=${encodeURIComponent(repoName)}`, "GET", null, activeToken);
-      if (res.ok) {
-        const result = await res.json();
-        if (result.success) {
-          setCheckingSync((prev) => ({
-            ...prev,
-            [repoName]: result.data.up_to_date ? "up-to-date" : "out-of-sync",
-          }));
-        } else {
-          setCheckingSync((prev) => ({ ...prev, [repoName]: "error" }));
-        }
-      } else {
-        setCheckingSync((prev) => ({ ...prev, [repoName]: "error" }));
-      }
-    } catch {
+
+    const res = await checkRepoSyncApi(repoName, activeToken);
+    if (res.success && res.data) {
+      const isUpToDate = res.data.up_to_date ?? res.data.is_up_to_date ?? false;
+      setCheckingSync((prev) => ({
+        ...prev,
+        [repoName]: isUpToDate ? "up-to-date" : "out-of-sync",
+      }));
+    } else {
       setCheckingSync((prev) => ({ ...prev, [repoName]: "error" }));
     }
   };
@@ -104,16 +92,12 @@ export function RepoProvider({ children }: { children: React.ReactNode }) {
     if (!activeToken) return;
     setCheckingSync((prev) => ({ ...prev, [repoName]: "checking" }));
     const repoUrl = `https://github.com/${repoName}`;
-    try {
-      const res = await apiCall("/ingest", "POST", { repo_url: repoUrl }, activeToken);
-      const result = await res.json();
-      if (res.ok && result.success) {
-        setCheckingSync((prev) => ({ ...prev, [repoName]: "up-to-date" }));
-        loadRepos();
-      } else {
-        setCheckingSync((prev) => ({ ...prev, [repoName]: "error" }));
-      }
-    } catch {
+
+    const res = await triggerIngestApi(repoUrl, activeToken);
+    if (res.success) {
+      setCheckingSync((prev) => ({ ...prev, [repoName]: "up-to-date" }));
+      loadRepos();
+    } else {
       setCheckingSync((prev) => ({ ...prev, [repoName]: "error" }));
     }
   };
@@ -127,6 +111,7 @@ export function RepoProvider({ children }: { children: React.ReactNode }) {
         loadRepos,
         handleCheckSync,
         handleSyncNow,
+        clearSession,
       }}
     >
       {children}
@@ -144,6 +129,7 @@ export function useRepos() {
       loadRepos: async () => {},
       handleCheckSync: async () => {},
       handleSyncNow: async () => {},
+      clearSession: () => {},
     };
   }
   return context;

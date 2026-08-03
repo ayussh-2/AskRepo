@@ -12,7 +12,7 @@ import {
 export interface ProgressScreenProps {
   progressData: {
     status: string;
-    error_message: string | null;
+    error_message?: string | null;
     repo_name?: string;
   } | null;
   onStartChat: () => void;

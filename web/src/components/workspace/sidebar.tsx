@@ -6,7 +6,8 @@ import {
   CheckCircle2,
   AlertCircle,
   MessageSquare,
-  ChevronLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   LogOut,
   X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export interface SidebarProps {
   onSyncNow: (repoName: string) => void;
   onReloadRepos: () => void;
   onCloseSidebar: () => void;
+  onOpenSidebar?: () => void;
   onCloseMobileSidebar: () => void;
   onLogout: () => void;
 }
@@ -54,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSyncNow,
   onReloadRepos,
   onCloseSidebar,
+  onOpenSidebar,
   onCloseMobileSidebar,
   onLogout,
 }) => {
@@ -191,6 +194,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
+      {/* Floating Toggle Button when Sidebar is closed */}
+      {!sidebarOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onOpenSidebar}
+          className="hidden md:flex fixed top-3 left-3 z-40 h-8 w-8 bg-[#0d0d0e] border border-[#23252a] text-[#8a8f98] hover:text-[#f7f8f8] hover:bg-[#1a1b1e] shadow-md transition-all rounded-lg"
+          title="Open sidebar"
+        >
+          <PanelLeftOpen size={16} />
+        </Button>
+      )}
+
       {/* 1. Desktop Sidebar */}
       <aside
         className={`hidden md:flex flex-col justify-between shrink-0 bg-[#0d0d0e] border-r border-[#23252a] transition-all duration-300 relative ${
@@ -213,7 +229,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="h-7 w-7 text-[#8a8f98] hover:text-[#f7f8f8]"
               title="Close sidebar"
             >
-              <ChevronLeft size={16} />
+              <PanelLeftClose size={16} />
             </Button>
           </div>
 

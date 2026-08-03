@@ -1,7 +1,7 @@
 -include api/.env
 -include .env
 
-DOCKER_USER ?= ayush91101
+DOCKER_USER ?= your_docker_username
 DOCKER_IMAGE ?= askrepo-api
 DOCKER_TAG ?= latest
 FULL_IMAGE = $(DOCKER_USER)/$(DOCKER_IMAGE):$(DOCKER_TAG)
@@ -36,6 +36,6 @@ docker-push: docker-build
 	docker push $(FULL_IMAGE)
 
 docker-run:
-	docker run -d -p 8000:8000 --env-file api/.env --name askrepo-api-container $(FULL_IMAGE)
+	docker run -d -p 8000:8000 --env-file api/.env --name askrepo-api $(FULL_IMAGE)
 
 	
