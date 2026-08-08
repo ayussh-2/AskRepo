@@ -17,6 +17,46 @@ from .ast_walker import walk, flatten, find_orphan_lines
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
+import mimetypes
+
+def is_text_file(file_path: Path) -> bool:
+    ext = file_path.suffix.lower()
+    if ext in TEXT_EXTENSIONS:
+        return True
+    
+    # Dynamically detect text files without hardcoding names like "README"
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    if mime_type is not None and mime_type.startswith('text/'):
+        return True
+
+    # Fallback for extensionless text files (e.g. README, LICENSE, Dockerfile)
+    if not ext:
+        try:
+            with open(file_path, "rb") as f:
+                sample = f.read(1024)
+                if sample and b"\x00" not in sample:
+                    return True
+        except Exception:
+            pass
+
+    return False
+
+def generate_repo_tree_summary(root_path: str, max_depth: int = 3) -> str:
+    """Generates a clean text representation of the top-level directory structure."""
+    root = Path(root_path).resolve()
+    lines = [f"Repository Structure for {root.name}:"]
+    
+    for path in sorted(root.rglob("*")):
+        if any(skip in path.parts for skip in IGNORED_DIRS):
+            continue
+        rel = path.relative_to(root)
+        depth = len(rel.parts)
+        if depth <= max_depth:
+            prefix = "  " * (depth - 1) + "├── "
+            lines.append(f"{prefix}{rel.name}{'/' if path.is_dir() else ''}")
+            
+    return "\n".join(lines[:150])
+
 def detect_language(file_path: str) -> Optional[str]:
     ext = Path(file_path).suffix.lower()
     return EXTENSION_TO_LANGUAGE.get(ext)
@@ -95,7 +135,7 @@ def parse_directory(
 
         rel_path = str(file_path.relative_to(root)).replace("\\", "/")
 
-        if ext in TEXT_EXTENSIONS:
+        if is_text_file(file_path):
             try:
                 content = file_path.read_text(encoding="utf-8", errors="ignore")
                 text_results.append({

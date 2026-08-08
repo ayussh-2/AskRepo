@@ -43,7 +43,10 @@ def generate_and_store_embeddings(all_chunks, repo_name, commit_sha):
         return
 
     print(f"Preparing {len(all_chunks)} chunks for embedding...")
-    contents = [chunk.text for chunk in all_chunks]
+    contents = [
+        f"File: {chunk.metadata.get('file_path', '')} | Symbol: {chunk.metadata.get('symbol_name', '')}\n\n{chunk.text}"
+        for chunk in all_chunks
+    ]
 
     batch_size = 50
     batches = []

@@ -1,7 +1,7 @@
 -include api/.env
 -include .env
 
-DOCKER_USER ?= your_docker_username
+DOCKER_USER ?= ayush91101
 DOCKER_IMAGE ?= askrepo-api
 DOCKER_TAG ?= latest
 FULL_IMAGE = $(DOCKER_USER)/$(DOCKER_IMAGE):$(DOCKER_TAG)

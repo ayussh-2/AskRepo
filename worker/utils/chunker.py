@@ -162,3 +162,34 @@ def output_to_txt(all_chunks):
             json.dump(all_chunks, f, ensure_ascii=False, indent=2, default=str)
     except Exception:
         pass
+
+
+def create_repo_summary_chunk(repo_name: str, commit_sha: str, file_tree: str, readme_text: str) -> Chunk:
+    condensed_summary = (
+        f"=== REPOSITORY ARCHITECTURE & DIRECTORY STRUCTURE ===\n"
+        f"{file_tree[:3000]}\n\n"
+        f"=== MAIN README DOCUMENTATION ===\n"
+        f"{readme_text[:5000]}"
+    )
+
+    chunk_id = _make_id(repo_name, "REPOSITORY_OVERVIEW", 0, condensed_summary)
+    return Chunk(
+        id=chunk_id,
+        text=condensed_summary,
+        metadata={
+            "repo_name": repo_name,
+            "commit_sha": commit_sha,
+            "file_path": "ROOT_SUMMARY",
+            "language": "markdown",
+            "chunk_index": 0,
+            "total_chunks": 1,
+            "start_line": 1,
+            "end_line": condensed_summary.count("\n") + 1,
+            "token_count": len(enc.encode(condensed_summary)),
+            "symbol_name": "Repo Architecture Summary",
+            "symbol_type": "repo_summary",
+            "docstring": "High-level repository architecture & structure summary.",
+        }
+    )
+
+

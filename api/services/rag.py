@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from lib.redis import get_chat_history, add_chat_message, save_all_history
 from sqlalchemy import func
 from services.llm import generate_text_with_fallback, generate_stream_with_fallback
+import re
 
 try:
     from flashrank import Ranker, RerankRequest
@@ -34,7 +35,7 @@ async def embed_query(query: str) -> List[float]:
             data = response.json()
             return data["embedding"]
 
-    # Local Ollama embedding fallback (0-cost local CPU embedding for dev)
+    # Local Ollama embedding fallback
     async with httpx.AsyncClient(timeout=60.0) as http_client:
         url = f"{settings.ollama_base_url.rstrip('/')}/api/embeddings"
         payload = {
@@ -84,9 +85,20 @@ def rerank_chunks(query: str, candidate_chunks: List[RepoChunk], top_k: int = 4)
         rerank_req = RerankRequest(query=query, passages=passages)
         results = ranker.rerank(rerank_req)
 
-        top_indices = [item["id"] for item in results[:top_k]]
+        top_results = results[:top_k]
+        top_indices = [item["id"] for item in top_results]
         reranked_chunks = [candidate_chunks[idx] for idx in top_indices if idx < len(candidate_chunks)]
-        print(f"[Reranker] FlashRank reranked {len(candidate_chunks)} candidates -> selected top {len(reranked_chunks)} chunks for query: '{query[:40]}...'")
+        
+        print(f"[Reranker] FlashRank reranked {len(candidate_chunks)} candidates -> selected top {len(reranked_chunks)} chunks for query: '{query[:50]}...'")
+        print("[Reranker Scores]")
+        for rank, res in enumerate(top_results, 1):
+            idx = res.get("id")
+            score = res.get("score", 0.0)
+            chunk = candidate_chunks[idx] if (idx is not None and idx < len(candidate_chunks)) else None
+            file_p = chunk.file_path if chunk else "unknown"
+            sym_p = chunk.symbol_name if chunk else ""
+            print(f"  #{rank}: score={score:.4f} | File: {file_p} | Symbol: {sym_p}")
+
         return reranked_chunks
     except Exception as e:
         print(f"[Reranker Warning] Reranking failed: {e}. Returning raw vector results.")
@@ -167,6 +179,36 @@ async def process_history_and_summarize(user_id: str, repo_name: str, new_query:
 
     return history
 
+
+BROAD_QUERY_PATTERNS = [
+    r"\b(overview|architecture|arch|structure|structured|tech stack|technology stack|technologies|built with|infrastructure|infra|scaling|scale|deployment|deploy)\b",
+    
+    r"\b(how (is|does) (the|this)?\s*(repo|repository|codebase|project|app|application|backend|frontend|system|pipeline|service|infrastructure|infra|scaling|scale))\b",
+    
+    r"\b(explain|summarize|describe|breakdown|walkthrough)\s+(the|this)?\s*(repo|repository|codebase|project|app|architecture|flow|system|design|layout|infrastructure|scaling)\b",
+    
+    r"\b(data flow|request flow|execution flow|pipeline flow|lifecycle|workflow|process flow)\b",
+    
+    r"\b(folder layout|directory structure|file structure|module breakdown|layer|layers|component breakdown)\b",
+    
+    r"\b(high[- ]level|big picture|conceptual overview)\b",
+    r"\b(what does this (repo|repository|codebase|project|app) do)\b",
+    
+    r"\b(database schema|auth mechanism|ingestion pipeline|api endpoints|services overview|scaling strategy|infrastructure design)\b"
+]
+
+def determine_dynamic_top_k(query: str, user_top_k: Optional[int] = None) -> tuple[int, int]:
+    """
+    Returns (candidate_k, rerank_top_k) based on regex query intent classification.
+    """
+    if user_top_k and user_top_k != 4:
+        return (max(15, user_top_k * 3), user_top_k)
+    
+    is_broad = any(re.search(pat, query, re.IGNORECASE) for pat in BROAD_QUERY_PATTERNS)
+    candidate_k, effective_top_k = (35, 10) if is_broad else (15, 4)
+    print(f"[Intent Classifier] Query: '{query[:50]}...' -> Broad Intent detected: {is_broad} (candidate_k={candidate_k}, top_k={effective_top_k})")
+    return (candidate_k, effective_top_k)
+
 async def chat_stream_handler(
     user_id: str,
     repo_name: str,
@@ -176,22 +218,24 @@ async def chat_stream_handler(
     model: Optional[str] = None
 ):
     try:
-        # 1. First-stage: Vector similarity search (retrieve 15 candidate chunks)
+        # 1. First-stage: Vector similarity search with dynamic candidate pool size
+        candidate_k, effective_top_k = determine_dynamic_top_k(query, user_top_k=top_k)
         query_embedding = await embed_query(query)
-        candidate_chunks = search_chunk(query_embedding, repo_name, candidate_k=15)
+        candidate_chunks = search_chunk(query_embedding, repo_name, candidate_k=candidate_k)
 
         if len(candidate_chunks) == 0:
             yield "I could not find any indexed code chunks for this repository. Please make sure the repository is ingested."
             return
 
-        # 2. Second-stage: FlashRank Cross-Encoder Reranking (select top_k best chunks)
-        chunks = rerank_chunks(query, candidate_chunks, top_k=top_k)
+        # 2. Second-stage: FlashRank Cross-Encoder Reranking (select effective_top_k best chunks)
+        chunks = rerank_chunks(query, candidate_chunks, top_k=effective_top_k)
 
         # 3. Async conversation history processing (scoped by user_id & repo_name)
         history = await process_history_and_summarize(user_id, repo_name, query)
         add_chat_message(user_id, repo_name, "user", query)
 
-        context = sanitize_context(chunks)
+        max_chars = 24000 if effective_top_k > 5 else 12000
+        context = sanitize_context(chunks, max_chars=max_chars)
         system_instruction = f"""
         You are a chatbot called askRepo.
         Rules:

@@ -1,5 +1,5 @@
-from lib.ast_parser.parser import parse_directory
-from utils.chunker import chunk_parse_result
+from lib.ast_parser.parser import parse_directory, generate_repo_tree_summary
+from utils.chunker import chunk_parse_result, chunk_text_file, create_repo_summary_chunk
 from utils.embedding import generate_and_store_embeddings
 from utils.manage_repo import delete_repo_folder
 from sqlmodel import Session, select, func
@@ -44,6 +44,22 @@ def run_ingestion(repo_path: str, repo_name: str, commit_sha: str):
         for result in ast_results:
             all_chunks.extend(chunk_parse_result(result, repo_name, commit_sha))
 
+        readme_text = ""
+        for txt in text_results:
+            if "readme" in txt["file_path"].lower():
+                readme_text = txt["content"]
+            all_chunks.extend(chunk_text_file(
+                content=txt["content"], 
+                file_path=txt["file_path"], 
+                repo_name=repo_name, 
+                commit_sha=commit_sha
+            ))
+
+        # Generate repository context summary chunk
+        file_tree = generate_repo_tree_summary(repo_path)
+        summary_chunk = create_repo_summary_chunk(repo_name, commit_sha, file_tree, readme_text)
+        all_chunks.append(summary_chunk)
+
         generate_and_store_embeddings(all_chunks, repo_name, commit_sha)
         delete_repo_folder(repo_path)
 
@@ -52,3 +68,4 @@ def run_ingestion(repo_path: str, repo_name: str, commit_sha: str):
     except Exception as e:
         print(f"Error in ingestion pipeline: {e}")
         update_ingestion_status(repo_name, commit_sha, "failed", str(e))
+
