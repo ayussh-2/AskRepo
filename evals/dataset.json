@@ -1,0 +1,52 @@
+[
+  {
+    "category": "Direct Symbol Lookup",
+    "user_input": "How does res.send() handle JSON objects in express?",
+    "reference": "res.send() checks if the body is an object or array and delegates formatting to res.json() in lib/response.js."
+  },
+  {
+    "category": "Direct Symbol Lookup",
+    "user_input": "How are route parameters parsed in Express?",
+    "reference": "Route parameters are compiled using path-to-regexp in lib/router/layer.js."
+  },
+  {
+    "category": "Multi-File Architecture",
+    "user_input": "How does calling next(err) trigger error-handling middleware?",
+    "reference": "Calling next(err) in lib/router/index.js skips standard route handlers and finds the next layer with 4 parameters (err, req, res, next)."
+  },
+  {
+    "category": "Multi-File Architecture",
+    "user_input": "How does app.render() resolve template paths and integrate custom view engines?",
+    "reference": "app.render() in lib/application.js instantiates a View object from lib/view.js and calls View.prototype.render()."
+  },
+  {
+    "category": "Out-of-Context Fallback",
+    "user_input": "How does Express handle WebSocket connections natively in lib/websocket.js?",
+    "reference": "I could not find that information in the retrieved repository context."
+  },
+  {
+    "category": "Out-of-Context Fallback",
+    "user_input": "Where is the built-in GraphQL schema parser defined in Express?",
+    "reference": "I could not find that information in the retrieved repository context."
+  },
+  {
+    "category": "Out-of-Context Fallback",
+    "user_input": "How does app.enableQuantumRouting() work in Express?",
+    "reference": "I could not find that information in the retrieved repository context."
+  },
+  {
+    "category": "General Knowledge",
+    "user_input": "What is the difference between HTTP/1.1 and HTTP/2?",
+    "reference": "HTTP/2 introduces binary framing, request multiplexing over a single TCP connection, header compression (HPACK), and server push."
+  },
+  {
+    "category": "General Knowledge",
+    "user_input": "What is the difference between TCP and UDP sockets?",
+    "reference": "TCP is connection-oriented, reliable, and guarantees in-order delivery. UDP is connectionless, stateless, faster, but does not guarantee packet delivery."
+  },
+  {
+    "category": "General Knowledge",
+    "user_input": "What is a Race Condition in asynchronous JavaScript?",
+    "reference": "A race condition occurs when concurrent asynchronous operations execute in an unexpected order, leading to inconsistent shared state."
+  }
+]

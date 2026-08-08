@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #010102;
+  --foreground: #f7f8f8;
+}
+
+@theme {
+  --font-sans: var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+body {
+  background: #010102;
+  color: #f7f8f8;
+  font-family: var(--font-geist-sans), sans-serif;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* Shimmer animation keyframes for text-shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+/* Custom scrollbar styling for sleek dark look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #23252a;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3a3f47;
+}

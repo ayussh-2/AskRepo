@@ -1,0 +1,73 @@
+{
+  "file_path": "test_java.java",
+  "language": "java",
+  "symbols": [
+    {
+      "name": "PaymentService",
+      "type": "interface_declaration",
+      "start_line": 4,
+      "end_line": 6,
+      "language": "java",
+      "parent": "",
+      "docstring": "Core service interface for the application.",
+      "source": "public interface PaymentService {\n    void process();\n}",
+      "token_count": 10
+    },
+    {
+      "name": "process",
+      "type": "method_declaration",
+      "start_line": 5,
+      "end_line": 5,
+      "language": "java",
+      "parent": "PaymentService",
+      "docstring": "",
+      "source": "    void process();",
+      "token_count": 4
+    },
+    {
+      "name": "PaymentType",
+      "type": "enum_declaration",
+      "start_line": 11,
+      "end_line": 14,
+      "language": "java",
+      "parent": "",
+      "docstring": "Represents the accepted payment types.",
+      "source": "public enum PaymentType {\n    CREDIT,\n    DEBIT\n}",
+      "token_count": 14
+    },
+    {
+      "name": "TransactionManager",
+      "type": "class_declaration",
+      "start_line": 19,
+      "end_line": 32,
+      "language": "java",
+      "parent": "",
+      "docstring": "Handles the execution of payment transactions.",
+      "source": "public class TransactionManager implements PaymentService {\n\n    /** * Initializes a new transaction manager.\n     */\n    public TransactionManager() {\n    }\n\n    // Executes the transaction securely.\n    @Override\n    public void process() {\n        // This is an inline comment, it should NOT be extracted as a docstring.\n        int x = 5;\n    }\n}",
+      "token_count": 72
+    },
+    {
+      "name": "TransactionManager",
+      "type": "constructor_declaration",
+      "start_line": 23,
+      "end_line": 24,
+      "language": "java",
+      "parent": "TransactionManager",
+      "docstring": "",
+      "source": "    public TransactionManager() {\n    }",
+      "token_count": 8
+    },
+    {
+      "name": "process",
+      "type": "method_declaration",
+      "start_line": 27,
+      "end_line": 31,
+      "language": "java",
+      "parent": "TransactionManager",
+      "docstring": "Executes the transaction securely.",
+      "source": "    @Override\n    public void process() {\n        // This is an inline comment, it should NOT be extracted as a docstring.\n        int x = 5;\n    }",
+      "token_count": 37
+    }
+  ],
+  "orphan_lines_count": 11
+}

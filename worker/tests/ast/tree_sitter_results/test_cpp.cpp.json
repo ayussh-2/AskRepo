@@ -1,0 +1,51 @@
+{
+  "file_path": "test_cpp.cpp",
+  "language": "cpp",
+  "symbols": [
+    {
+      "name": "Physics",
+      "type": "namespace_definition",
+      "start_line": 4,
+      "end_line": 23,
+      "language": "cpp",
+      "parent": "",
+      "docstring": "Global namespace representing physics engine.",
+      "source": "namespace Physics {\n\n    /**\n     * Represents a 3D vector.\n     */\n    struct Vector3 {\n        float x, y, z;\n\n        // Calculates magnitude.\n        float magnitude() {\n            return 0.0f;\n        }\n    };\n\n    /// Calculates the dot product returning a pointer to avoid copies.\n    /// Tests the pointer_declarator name bug!\n    float* calculateDotProduct(Vector3* a, Vector3* b) {\n        return nullptr;\n    }\n}",
+      "token_count": 99
+    },
+    {
+      "name": "Vector3",
+      "type": "struct_specifier",
+      "start_line": 9,
+      "end_line": 16,
+      "language": "cpp",
+      "parent": "Physics",
+      "docstring": "Represents a 3D vector.",
+      "source": "    struct Vector3 {\n        float x, y, z;\n\n        // Calculates magnitude.\n        float magnitude() {\n            return 0.0f;\n        }\n    };",
+      "token_count": 35
+    },
+    {
+      "name": "magnitude",
+      "type": "function_definition",
+      "start_line": 13,
+      "end_line": 15,
+      "language": "cpp",
+      "parent": "Vector3",
+      "docstring": "Calculates magnitude.",
+      "source": "        float magnitude() {\n            return 0.0f;\n        }",
+      "token_count": 15
+    },
+    {
+      "name": "calculateDotProduct",
+      "type": "function_definition",
+      "start_line": 20,
+      "end_line": 22,
+      "language": "cpp",
+      "parent": "Physics",
+      "docstring": "Calculates the dot product returning a pointer to avoid copies. Tests the pointer_declarator name bug!",
+      "source": "    float* calculateDotProduct(Vector3* a, Vector3* b) {\n        return nullptr;\n    }",
+      "token_count": 23
+    }
+  ],
+  "orphan_lines_count": 3
+}

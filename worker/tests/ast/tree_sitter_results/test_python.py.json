@@ -1,0 +1,40 @@
+{
+  "file_path": "test_python.py",
+  "language": "python",
+  "symbols": [
+    {
+      "name": "DatabaseHandler",
+      "type": "class_definition",
+      "start_line": 3,
+      "end_line": 16,
+      "language": "python",
+      "parent": "",
+      "docstring": "Handles all database connections.\n    Should be treated as a parent symbol.",
+      "source": "class DatabaseHandler:\n    \"\"\"\n    Handles all database connections.\n    Should be treated as a parent symbol.\n    \"\"\"\n\n    def connect(self, uri: str):\n        \"\"\"Connects to the database securely.\"\"\"\n        self.uri = uri\n\n    def _hidden(self):\n        # This is just a standard comment, NOT a docstring.\n        # Extractor should return \"\" for docstring here.\n        pass",
+      "token_count": 81
+    },
+    {
+      "name": "connect",
+      "type": "function_definition",
+      "start_line": 9,
+      "end_line": 11,
+      "language": "python",
+      "parent": "DatabaseHandler",
+      "docstring": "Connects to the database securely.",
+      "source": "    def connect(self, uri: str):\n        \"\"\"Connects to the database securely.\"\"\"\n        self.uri = uri",
+      "token_count": 23
+    },
+    {
+      "name": "_hidden",
+      "type": "function_definition",
+      "start_line": 13,
+      "end_line": 16,
+      "language": "python",
+      "parent": "DatabaseHandler",
+      "docstring": "",
+      "source": "    def _hidden(self):\n        # This is just a standard comment, NOT a docstring.\n        # Extractor should return \"\" for docstring here.\n        pass",
+      "token_count": 34
+    }
+  ],
+  "orphan_lines_count": 1
+}
