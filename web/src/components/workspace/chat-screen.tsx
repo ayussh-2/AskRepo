@@ -1,7 +1,6 @@
 import * as React from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Message } from "@/components/ai-sdk/types";
 import { ChatList } from "@/components/ai-sdk/chat-list";
 import { ChatInput } from "@/components/ai-sdk/chat-input";
@@ -56,9 +55,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ModeToggle />
-        </div>
       </div>
 
       {/* AI SDK UI Chat List */}
@@ -79,4 +75,3 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     </div>
   );
 };
-

@@ -38,4 +38,7 @@ docker-push: docker-build
 docker-run:
 	docker run -d -p 8000:8000 --env-file api/.env --name askrepo-api $(FULL_IMAGE)
 
+
+	
+
 	

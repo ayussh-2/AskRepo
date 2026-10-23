@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/mode-toggle";
 import { toast } from "sonner";
 
 export interface RepoItem {
@@ -294,7 +293,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <ModeToggle />
                 <Button
                   variant="ghost"
                   size="icon"

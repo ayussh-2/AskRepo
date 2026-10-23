@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { StatusIndicator } from "./status-indicator";
-import { ModeToggle } from "@/components/ui/mode-toggle";
 
 export function Footer() {
   return (
