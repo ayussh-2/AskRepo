@@ -1,8 +1,27 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --border: #e4e4e7;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #5e6ad2;
+}
+
+.dark {
   --background: #010102;
   --foreground: #f7f8f8;
+  --card: #131416;
+  --card-foreground: #f7f8f8;
+  --border: #23252a;
+  --muted: #1c1d22;
+  --muted-foreground: #8a8f98;
+  --accent: #5e6ad2;
 }
 
 @theme {
@@ -11,11 +30,12 @@
 }
 
 body {
-  background: #010102;
-  color: #f7f8f8;
+  background-color: var(--background);
+  color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
   overflow: hidden;
   height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Shimmer animation keyframes for text-shimmer effect */
@@ -32,7 +52,7 @@ body {
   animation: shimmer 2s linear infinite;
 }
 
-/* Custom scrollbar styling for sleek dark look */
+/* Custom scrollbar styling */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
@@ -40,9 +60,16 @@ body {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #23252a;
+  background: #d4d4d8;
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #23252a;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #3a3f47;
 }

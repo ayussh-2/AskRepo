@@ -152,10 +152,68 @@ export async function fetchChatHistoryApi(
   );
 }
 
+export interface ModelOption {
+  id: string;
+  name: string;
+  provider: string;
+  icon?: string;
+}
+
+export interface ProviderGroup {
+  id: string;
+  name: string;
+  icon: string;
+  models: ModelOption[];
+}
+
+export interface ModelsResponseData {
+  providers: ProviderGroup[];
+  default: {
+    provider: string;
+    model: string;
+  };
+}
+
+let modelsCache: ModelsResponseData | null = null;
+let modelsRequest: Promise<ApiResult<ModelsResponseData>> | null = null;
+
+export async function fetchModelsApi(
+  forceRefresh = false
+): Promise<ApiResult<ModelsResponseData>> {
+  if (modelsCache && !forceRefresh) {
+    return { success: true, data: modelsCache, error: null };
+  }
+
+  if (modelsRequest && !forceRefresh) {
+    return modelsRequest;
+  }
+
+  const request = handleApiRequest<ModelsResponseData>(() =>
+    fetch(`${BASE_URL}/models`, {
+      method: "GET",
+    })
+  ).then((result) => {
+    if (result.success) {
+      modelsCache = result.data;
+    }
+    return result;
+  });
+
+  modelsRequest = request;
+  try {
+    return await request;
+  } finally {
+    if (modelsRequest === request) {
+      modelsRequest = null;
+    }
+  }
+}
+
 export async function streamQueryApi(
   repoName: string,
   query: string,
   provider: string,
+  model: string | undefined,
   token: string,
   onUnauthorized?: () => void
 ): Promise<{ res: Response | null; error: string | null }> {
@@ -168,6 +226,7 @@ export async function streamQueryApi(
         body: JSON.stringify({
           query,
           provider: provider !== "auto" ? provider : undefined,
+          model: model && model !== "auto" ? model : undefined,
         }),
       }
     );

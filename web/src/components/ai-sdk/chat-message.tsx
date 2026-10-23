@@ -61,7 +61,7 @@ function renderMarkdownBlock(text: string, blockKey: number): React.ReactNode {
         const itemText = lines[i].replace(/^\s*[*\-+] /, "");
         const indent = lines[i].match(/^(\s*)/)?.[1].length ?? 0;
         listItems.push(
-          <li key={i} style={{ marginLeft: indent > 0 ? `${indent * 4}px` : undefined }} className="leading-relaxed text-[#d0d6e0]">
+          <li key={i} style={{ marginLeft: indent > 0 ? `${indent * 4}px` : undefined }} className="leading-relaxed text-zinc-800 dark:text-[#d0d6e0]">
             {renderInlineMarkdown(itemText)}
           </li>
         );
@@ -75,7 +75,7 @@ function renderMarkdownBlock(text: string, blockKey: number): React.ReactNode {
       const listItems: React.ReactNode[] = [];
       while (i < lines.length && /^\d+\. /.test(lines[i])) {
         const itemText = lines[i].replace(/^\d+\. /, "");
-        listItems.push(<li key={i} className="leading-relaxed text-[#d0d6e0]">{renderInlineMarkdown(itemText)}</li>);
+        listItems.push(<li key={i} className="leading-relaxed text-zinc-800 dark:text-[#d0d6e0]">{renderInlineMarkdown(itemText)}</li>);
         i++;
       }
       elements.push(<ol key={`${blockKey}-ol-${i}`} className="list-decimal list-outside pl-4 my-1 space-y-0.5 text-[14px]">{listItems}</ol>);
@@ -85,7 +85,7 @@ function renderMarkdownBlock(text: string, blockKey: number): React.ReactNode {
     if (line.trim() === "") { i++; continue; }
 
     elements.push(
-      <p key={`${blockKey}-p-${i}`} className="leading-relaxed text-[14px] text-[#d0d6e0] my-0.5 whitespace-pre-wrap">
+      <p key={`${blockKey}-p-${i}`} className="leading-relaxed text-[14px] text-zinc-800 dark:text-[#d0d6e0] my-0.5 whitespace-pre-wrap">
         {renderInlineMarkdown(line)}
       </p>
     );
@@ -155,7 +155,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
           className={`p-3 rounded-2xl border text-sm leading-relaxed ${
             isUser
               ? "bg-[#5e6ad2] text-white border-transparent rounded-br-none"
-              : "bg-[#131416] text-[#d0d6e0] border-[#23252a] rounded-bl-none"
+              : "bg-zinc-100 dark:bg-[#131416] text-zinc-800 dark:text-[#d0d6e0] border-zinc-200 dark:border-[#23252a] rounded-bl-none shadow-sm dark:shadow-none"
           }`}
         >
           {message.content === "" && isLoading && isLastMessage ? (

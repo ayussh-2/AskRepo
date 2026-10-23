@@ -33,7 +33,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
 }) => {
   return (
     <Card
-      className={`border-[#23252a] bg-[#0d0d0e] hover:border-[#3a3f47] transition-all duration-150 flex flex-col justify-between group cursor-pointer ${
+      className={`border-zinc-200 dark:border-[#23252a] bg-white dark:bg-[#0d0d0e] hover:border-zinc-300 dark:hover:border-[#3a3f47] transition-all duration-150 flex flex-col justify-between group cursor-pointer shadow-sm dark:shadow-none ${
         isUpdating
           ? "border-[#5e6ad2]/60 shadow-[0_0_16px_rgba(94,106,210,0.12)]"
           : ""
@@ -49,7 +49,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
             </span>
           )}
         </div>
-        <CardTitle className="text-base font-semibold text-[#f7f8f8] group-hover:text-white transition-colors truncate">
+        <CardTitle className="text-base font-semibold text-zinc-900 dark:text-[#f7f8f8] group-hover:text-[#5e6ad2] dark:group-hover:text-white transition-colors truncate">
           {repo.repo_name}
         </CardTitle>
       </CardHeader>
@@ -62,7 +62,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
             e.stopPropagation();
             onCheckSync(repo.repo_name);
           }}
-          className="h-7 px-2 text-[11px] text-[#8a8f98] hover:text-[#f7f8f8] -ml-2"
+          className="h-7 px-2 text-[11px] text-zinc-500 hover:text-zinc-900 dark:text-[#8a8f98] dark:hover:text-[#f7f8f8] -ml-2"
         >
           {syncState === "checking" ? (
             <RefreshCw size={12} className="animate-spin" />

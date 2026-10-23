@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatusIndicator } from "@/components/workspace/status-indicator";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 
 export interface NavbarProps {
   token: string | null;
@@ -13,12 +13,12 @@ export interface NavbarProps {
 
 export function Navbar({ token, onLogout }: NavbarProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pt-4 bg-[#010102]/75 backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-50 pt-2 bg-white/75 dark:bg-[#010102]/75 border-b border-zinc-200/60 dark:border-transparent backdrop-blur-md transition-colors">
       <div className="mx-auto flex h-[52px] max-w-[1200px] items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center flex-shrink-0">
           <span
-            className="text-[15px] font-semibold text-[#f7f8f8]"
+            className="text-[15px] font-semibold text-zinc-900 dark:text-[#f7f8f8]"
             style={{ letterSpacing: "-0.02em" }}
           >
             askRepo
@@ -27,12 +27,11 @@ export function Navbar({ token, onLogout }: NavbarProps) {
 
         {/* Right actions */}
         <div className="flex items-center gap-2.5">
-          <StatusIndicator />
           {token ? (
             <>
               <Link
                 href="/dashboard"
-                className="rounded-lg border border-[#23252a] bg-[#131416] px-3.5 py-1.5 text-xs font-medium text-[#f7f8f8] transition-colors hover:bg-[#1e2024]"
+                className="rounded-lg border border-zinc-200 bg-zinc-100 dark:border-[#23252a] dark:bg-[#131416] px-3.5 py-1.5 text-xs font-medium text-zinc-900 dark:text-[#f7f8f8] transition-colors hover:bg-zinc-200 dark:hover:bg-[#1e2024]"
               >
                 Dashboard
               </Link>
@@ -40,7 +39,7 @@ export function Navbar({ token, onLogout }: NavbarProps) {
                 variant="ghost"
                 size="sm"
                 onClick={onLogout}
-                className="text-xs text-[#8a8f98] hover:text-[#f7f8f8] flex items-center gap-1.5"
+                className="text-xs text-zinc-600 hover:text-zinc-900 dark:text-[#8a8f98] dark:hover:text-[#f7f8f8] flex items-center gap-1.5"
               >
                 <LogOut size={14} />
                 Log out

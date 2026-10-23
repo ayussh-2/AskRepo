@@ -51,23 +51,23 @@ export const RepoGrid: React.FC<RepoGridProps> = ({
         {/* Header Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-bold text-[#f7f8f8]">
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-[#f7f8f8]">
               Indexed Repositories
             </h2>
-            <p className="text-xs text-[#8a8f98]">
+            <p className="text-xs text-zinc-500 dark:text-[#8a8f98]">
               Select a repository to open its chat session
             </p>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[#62666d]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-zinc-400 dark:text-[#62666d]" />
               <input
                 type="text"
                 placeholder="Search repositories..."
                 value={searchFilter}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full bg-[#131416] border border-[#23252a] rounded-lg pl-9 pr-3 py-1.5 text-xs text-[#f7f8f8] placeholder-[#62666d] focus:outline-none"
+                className="w-full bg-zinc-100 dark:bg-[#131416] border border-zinc-200 dark:border-[#23252a] rounded-lg pl-9 pr-3 py-1.5 text-xs text-zinc-900 dark:text-[#f7f8f8] placeholder-zinc-400 dark:placeholder-[#62666d] focus:outline-none"
               />
             </div>
             <Button

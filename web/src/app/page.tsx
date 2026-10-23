@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/workspace/navbar";
 import { Hero } from "@/components/workspace/hero";
+import { Footer } from "@/components/workspace/footer";
 import {
   getUserName,
   getStoredToken,
@@ -15,14 +16,13 @@ import { useRepos } from "@/context/repo-context";
 
 export default function Home() {
   const router = useRouter();
-  const { clearSession } = useRepos();
 
-  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  if (typeof window !== "undefined" && window.self !== window.top) {
+    return null;
+  }
 
-  const [userName] = useState<string>(() => {
-    const savedToken = token || getStoredToken();
-    return savedToken ? getUserName(savedToken) : "User";
-  });
+  const { token, clearSession } = useRepos();
+  const userName = token ? getUserName(token) : "User";
 
   const [repo, setRepo] = useState("");
 
@@ -39,7 +39,6 @@ export default function Home() {
 
   const handleLogout = () => {
     clearSession();
-    setToken(null);
     toast.success("Logged out successfully");
   };
 
@@ -67,8 +66,8 @@ export default function Home() {
   };
 
   return (
-    <div className="flex bg-[#010102] text-[#f7f8f8] h-screen w-full font-sans antialiased overflow-hidden relative">
-      <main className="flex-1 flex flex-col min-w-0 h-full bg-[#010102] relative z-10 w-full overflow-y-auto custom-scrollbar">
+    <div className="flex bg-white dark:bg-[#010102] text-zinc-900 dark:text-[#f7f8f8] h-screen w-full font-sans antialiased overflow-hidden relative transition-colors">
+      <main className="flex-1 flex flex-col min-w-0 h-full bg-white dark:bg-[#010102] relative z-10 w-full overflow-y-auto custom-scrollbar">
         <Navbar token={token} userName={userName} onLogout={handleLogout} />
 
         <div className="pt-[52px] flex-1 flex flex-col justify-center">
@@ -79,6 +78,8 @@ export default function Home() {
             userName={token ? userName : undefined}
           />
         </div>
+
+        <Footer />
       </main>
     </div>
   );

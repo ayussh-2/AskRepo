@@ -13,6 +13,25 @@ export function useChat(
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string>("auto");
+  const [selectedModel, setSelectedModel] = useState<string>("auto");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedProvider = localStorage.getItem("askrepo_preferred_provider");
+      const savedModel = localStorage.getItem("askrepo_preferred_model");
+      if (savedProvider) setSelectedProvider(savedProvider);
+      if (savedModel) setSelectedModel(savedModel);
+    }
+  }, []);
+
+  const handleSelectModel = (provider: string, model: string) => {
+    setSelectedProvider(provider);
+    setSelectedModel(model);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("askrepo_preferred_provider", provider);
+      localStorage.setItem("askrepo_preferred_model", model);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -81,6 +100,7 @@ export function useChat(
       repoName,
       userText,
       selectedProvider,
+      selectedModel,
       token,
       handleUnauthorized
     );
@@ -137,7 +157,10 @@ export function useChat(
     messages,
     isLoading,
     selectedProvider,
+    selectedModel,
     setSelectedProvider,
+    setSelectedModel,
+    handleSelectModel,
     handleSubmitQuery,
   };
 }

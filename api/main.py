@@ -43,11 +43,17 @@ def error_response(status_code: int, message: str, errors: Optional[str] = None)
     return {"success": False, "message": message, "errors": errors}
 
 from services.health import get_health_status
+from services.models import get_available_models
 
 @app.get("/health")
 @app.get("/")
 def health_handler():
     return get_health_status()
+
+@app.get("/models")
+def get_models_handler(refresh: bool = False):
+    models_data = get_available_models(force_refresh=refresh)
+    return success_response(200, "Models retrieved successfully", models_data)
 
 import subprocess
 

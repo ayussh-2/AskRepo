@@ -11,6 +11,10 @@ import { useChat } from "@/hooks/use-chat";
 
 export default function ChatClientPage({ repo }: { repo: string }) {
   const router = useRouter();
+
+  if (typeof window !== "undefined" && window.self !== window.top) {
+    return null;
+  }
   const searchParams = useSearchParams();
   const searchRepo = searchParams ? searchParams.get("repo") : null;
 
@@ -24,6 +28,7 @@ export default function ChatClientPage({ repo }: { repo: string }) {
       : decodeURIComponent(repo || "");
 
   const {
+    token,
     repos,
     loadingRepos,
     checkingSync,
@@ -33,12 +38,7 @@ export default function ChatClientPage({ repo }: { repo: string }) {
     clearSession,
   } = useRepos();
 
-  const [token, setToken] = useState<string | null>(() => getStoredToken());
-
-  const [userName] = useState<string>(() => {
-    const savedToken = token || getStoredToken();
-    return savedToken ? getUserName(savedToken) : "User";
-  });
+  const userName = token ? getUserName(token) : "User";
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -46,8 +46,9 @@ export default function ChatClientPage({ repo }: { repo: string }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleUnauthorized = useCallback(() => {
+    clearSession();
     setShowAuthModal(true);
-  }, []);
+  }, [clearSession]);
 
   const {
     query,
@@ -55,13 +56,14 @@ export default function ChatClientPage({ repo }: { repo: string }) {
     messages,
     isLoading,
     selectedProvider,
+    selectedModel,
     setSelectedProvider,
+    handleSelectModel,
     handleSubmitQuery,
   } = useChat(repoName, token, handleUnauthorized);
 
   const handleLogout = () => {
     clearSession();
-    setToken(null);
     router.push("/");
   };
 
@@ -74,7 +76,7 @@ export default function ChatClientPage({ repo }: { repo: string }) {
   if (!token) return null;
 
   return (
-    <div className="flex bg-[#010102] text-[#f7f8f8] h-screen w-full font-sans antialiased overflow-hidden relative">
+    <div className="flex bg-white dark:bg-[#010102] text-zinc-900 dark:text-[#f7f8f8] h-screen w-full font-sans antialiased overflow-hidden relative transition-colors">
       <Sidebar
         repos={repos}
         activeRepo={repoName}
@@ -96,15 +98,17 @@ export default function ChatClientPage({ repo }: { repo: string }) {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 flex flex-col justify-between min-w-0 h-full bg-[#010102] relative z-10 w-full">
+      <main className="flex-1 flex flex-col justify-between min-w-0 h-full bg-white dark:bg-[#010102] relative z-10 w-full transition-colors">
         <ChatScreen
           activeRepo={repoName}
           messages={messages}
           input={query}
           isLoading={isLoading}
           provider={selectedProvider}
+          model={selectedModel}
           onInputChange={setQuery}
           onProviderChange={setSelectedProvider}
+          onSelectModel={handleSelectModel}
           onSubmitQuery={handleSubmitQuery}
           onBackHome={() => router.push("/dashboard")}
         />

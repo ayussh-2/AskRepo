@@ -14,6 +14,7 @@ import { IngestScreen } from "@/components/workspace/ingest-screen";
 import { ProgressScreen } from "@/components/workspace/progress-screen";
 import { RepoGrid } from "@/components/workspace/repo-grid";
 import { AuthModal } from "@/components/workspace/auth-modal";
+import { Footer } from "@/components/workspace/footer";
 import { toast } from "sonner";
 import { useRepos } from "@/context/repo-context";
 import { useIngest } from "@/hooks/use-ingest";
@@ -21,15 +22,22 @@ import { useIngest } from "@/hooks/use-ingest";
 export default function DashboardClientPage() {
   const router = useRouter();
 
-  const { repos, loadingRepos, checkingSync, loadRepos, handleCheckSync, clearSession } =
-    useRepos();
+  // If inside silent refresh iframe, do not mount UI or make requests
+  if (typeof window !== "undefined" && window.self !== window.top) {
+    return null;
+  }
 
-  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const {
+    token,
+    repos,
+    loadingRepos,
+    checkingSync,
+    loadRepos,
+    handleCheckSync,
+    clearSession,
+  } = useRepos();
 
-  const [userName] = useState<string>(() => {
-    const savedToken = token || getStoredToken();
-    return savedToken ? getUserName(savedToken) : "User";
-  });
+  const userName = token ? getUserName(token) : "User";
 
   const [screen, setScreen] = useState<"dashboard" | "ingest" | "progress">(
     "dashboard",
@@ -42,8 +50,9 @@ export default function DashboardClientPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleUnauthorized = useCallback(() => {
+    clearSession();
     setShowAuthModal(true);
-  }, []);
+  }, [clearSession]);
 
   const {
     jobId,
@@ -57,7 +66,6 @@ export default function DashboardClientPage() {
 
   const handleLogout = () => {
     clearSession();
-    setToken(null);
     router.push("/");
   };
 
@@ -130,7 +138,7 @@ export default function DashboardClientPage() {
   if (!token) return null;
 
   return (
-    <div className="flex bg-[#010102] text-[#f7f8f8] h-screen w-full font-sans antialiased overflow-hidden relative">
+    <div className="flex bg-white dark:bg-[#010102] text-zinc-900 dark:text-[#f7f8f8] h-screen w-full font-sans antialiased overflow-hidden relative transition-colors">
       <Sidebar
         repos={repos}
         activeRepo={null}
@@ -170,7 +178,7 @@ export default function DashboardClientPage() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 h-full bg-[#010102] relative z-10 w-full overflow-y-auto custom-scrollbar">
+      <main className="flex-1 flex flex-col justify-between min-w-0 h-full bg-white dark:bg-[#010102] relative z-10 w-full overflow-y-auto custom-scrollbar transition-colors">
         <div className="flex-1 flex flex-col pt-4">
           {screen === "ingest" ? (
             <div className="p-6 max-w-4xl mx-auto w-full">
@@ -260,6 +268,7 @@ export default function DashboardClientPage() {
             />
           )}
         </div>
+        <Footer />
       </main>
 
       {/* 401 Re-Login Modal */}

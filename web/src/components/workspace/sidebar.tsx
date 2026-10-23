@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import { toast } from "sonner";
 
 export interface RepoItem {
@@ -109,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => {
                   if (isProcessing) {
                     toast.info(
-                      `Repository ${repo.repo_name} is currently being processed. Please wait until indexing finishes.`
+                      `Repository ${repo.repo_name} is currently being processed. Please wait until indexing finishes.`,
                     );
                   } else {
                     onSelectRepo(repo.repo_name);
@@ -209,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* 1. Desktop Sidebar */}
       <aside
-        className={`hidden md:flex flex-col justify-between shrink-0 bg-[#0d0d0e] border-r border-[#23252a] transition-all duration-300 relative ${
+        className={`hidden md:flex flex-col justify-between shrink-0 bg-zinc-50 dark:bg-[#0d0d0e] border-r border-zinc-200 dark:border-[#23252a] transition-all duration-300 relative ${
           sidebarOpen ? "w-[280px]" : "w-0 overflow-hidden border-r-0"
         }`}
       >
@@ -217,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between px-1">
             <span
               onClick={onNewIngest}
-              className="text-[15px] font-semibold text-[#f7f8f8] tracking-tight cursor-pointer"
+              className="text-[15px] font-semibold text-zinc-900 dark:text-[#f7f8f8] tracking-tight cursor-pointer"
             >
               askRepo Workspace
             </span>
@@ -226,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               variant="ghost"
               size="icon"
               onClick={onCloseSidebar}
-              className="h-7 w-7 text-[#8a8f98] hover:text-[#f7f8f8]"
+              className="h-7 w-7 text-zinc-500 hover:text-zinc-900 dark:text-[#8a8f98] dark:hover:text-[#f7f8f8]"
               title="Close sidebar"
             >
               <PanelLeftClose size={16} />
@@ -244,31 +245,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {sidebarReposList()}
         </div>
-
-        <div className="p-4 border-t border-[#23252a] bg-[#0d0d0e] flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2 px-1">
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-bold text-[#8a8f98] uppercase tracking-widest font-mono block">
-                Account
-              </span>
-              <span
-                className="text-[13px] text-[#d0d6e0] font-medium truncate block mt-0.5"
-                title={userName}
-              >
-                {userName}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onLogout}
-              className="h-7 w-7 text-[#8a8f98] hover:text-red-400"
-              title="Sign Out"
-            >
-              <LogOut size={14} />
-            </Button>
-          </div>
-        </div>
       </aside>
 
       {/* 2. Mobile Sidebar Drawer */}
@@ -279,10 +255,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="fixed inset-0 bg-black/70 transition-opacity duration-300"
           />
 
-          <aside className="relative flex flex-col justify-between w-[280px] h-full bg-[#0d0d0e] border-r border-[#23252a] p-4 shadow-2xl z-10">
+          <aside className="relative flex flex-col justify-between w-[280px] h-full bg-zinc-50 dark:bg-[#0d0d0e] border-r border-zinc-200 dark:border-[#23252a] p-4 shadow-2xl z-10">
             <div className="flex flex-col gap-5 flex-1 overflow-hidden">
               <div className="flex items-center justify-between px-1">
-                <span className="text-[15px] font-semibold text-[#f7f8f8] tracking-tight">
+                <span className="text-[15px] font-semibold text-zinc-900 dark:text-[#f7f8f8] tracking-tight">
                   askRepo Workspace
                 </span>
 
@@ -290,7 +266,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   variant="ghost"
                   size="icon"
                   onClick={onCloseMobileSidebar}
-                  className="h-7 w-7 text-[#8a8f98] hover:text-[#f7f8f8]"
+                  className="h-7 w-7 text-zinc-500 hover:text-zinc-900 dark:text-[#8a8f98] dark:hover:text-[#f7f8f8]"
                 >
                   <X size={16} />
                 </Button>
@@ -308,23 +284,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {sidebarReposList()}
             </div>
 
-            <div className="p-2 border-t border-[#23252a] flex items-center justify-between gap-2 mt-4">
+            <div className="p-2 border-t border-zinc-200 dark:border-[#23252a] flex items-center justify-between gap-2 mt-4">
               <div className="min-w-0">
-                <span className="text-[10px] font-bold text-[#8a8f98] uppercase tracking-widest font-mono block">
+                <span className="text-[10px] font-bold text-zinc-400 dark:text-[#8a8f98] uppercase tracking-widest font-mono block">
                   Account
                 </span>
-                <span className="text-[13px] text-[#d0d6e0] font-medium truncate block mt-0.5">
+                <span className="text-[13px] text-zinc-800 dark:text-[#d0d6e0] font-medium truncate block mt-0.5">
                   {userName}
                 </span>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onLogout}
-                className="h-7 w-7 text-[#8a8f98] hover:text-red-400"
-              >
-                <LogOut size={14} />
-              </Button>
+              <div className="flex items-center gap-1">
+                <ModeToggle />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onLogout}
+                  className="h-7 w-7 text-zinc-500 hover:text-red-500 dark:text-[#8a8f98] dark:hover:text-red-400"
+                >
+                  <LogOut size={14} />
+                </Button>
+              </div>
             </div>
           </aside>
         </div>
