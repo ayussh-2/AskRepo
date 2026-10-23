@@ -22,18 +22,21 @@ def run_migrations():
         db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
     print(f"Connecting to database...")
-    engine = create_engine(db_url, echo=True)
+    engine = create_engine(db_url, echo=True, connect_args={"prepare_threshold": 0})
     
     from sqlalchemy import text
     with engine.connect() as conn:
         print("Enabling pgvector extension...")
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-        print("Altering ingestion_statuses table...")
-        conn.execute(text("ALTER TABLE ingestion_statuses ADD COLUMN IF NOT EXISTS user_id VARCHAR;"))
         conn.commit()
     
     print("Creating tables if they do not exist...")
     SQLModel.metadata.create_all(engine)
+
+    with engine.connect() as conn:
+        print("Altering ingestion_statuses table...")
+        conn.execute(text("ALTER TABLE ingestion_statuses ADD COLUMN IF NOT EXISTS user_id VARCHAR;"))
+        conn.commit()
     print("Migrations completed successfully!")
 
 if __name__ == "__main__":

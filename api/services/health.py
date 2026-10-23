@@ -6,6 +6,7 @@ from lib.redis import redis_client
 from config import settings
 from google import genai
 from services.llm import get_active_providers
+import httpx
 
 try:
     import psutil
@@ -21,7 +22,8 @@ def check_postgres() -> dict:
         latency_ms = round((time.perf_counter() - start) * 1000, 2)
         return {"status": "healthy", "latency_ms": latency_ms}
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        print(f"[Health] Postgres check failed: {e}")
+        return {"status": "unhealthy", "error": "Connection failed"}
 
 def check_redis() -> dict:
     start = time.perf_counter()
@@ -31,14 +33,28 @@ def check_redis() -> dict:
             return {"status": "healthy", "latency_ms": latency_ms}
         return {"status": "unhealthy", "error": "Redis ping returned False"}
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        print(f"[Health] Redis check failed: {e}")
+        return {"status": "unhealthy", "error": "Connection failed"}
 
 def check_llm_providers() -> dict:
     active_providers = get_active_providers()
     provider_status = {}
 
-    for provider in ["gemini", "groq", "mistral"]:
+    PROVIDER_CONFIGS = {
+        "gemini": {
+            "check": "gemini",
+        },
+        "groq": {
+            "base_url": "https://api.groq.com/openai/v1",
+            "key": settings.groq_api_key,
+        },
+        "mistral": {
+            "base_url": "https://api.mistral.ai/v1",
+            "key": settings.mistral_api_key,
+        },
+    }
 
+    for provider in ["gemini", "groq", "mistral"]:
         key = getattr(settings, f"{provider}_api_key", "")
         model = getattr(settings, f"{provider}_llm_model", "")
         if not key:
@@ -58,6 +74,14 @@ def check_llm_providers() -> dict:
                     "model": model_info.name.split("/")[-1] if hasattr(model_info, 'name') else model
                 }
             else:
+                # Actually ping the /models endpoint to verify connectivity
+                cfg = PROVIDER_CONFIGS[provider]
+                with httpx.Client(timeout=10.0) as http_client:
+                    resp = http_client.get(
+                        f"{cfg['base_url']}/models",
+                        headers={"Authorization": f"Bearer {cfg['key']}"}
+                    )
+                    resp.raise_for_status()
                 latency_ms = round((time.perf_counter() - start) * 1000, 2)
                 provider_status[provider] = {
                     "configured": True,
@@ -66,10 +90,13 @@ def check_llm_providers() -> dict:
                     "model": model
                 }
         except Exception as e:
+            latency_ms = round((time.perf_counter() - start) * 1000, 2)
+            print(f"[Health] LLM provider '{provider}' check failed: {e}")
             provider_status[provider] = {
                 "configured": True,
                 "status": "unhealthy",
-                "error": str(e),
+                "latency_ms": latency_ms,
+                "error": "Connection failed",
                 "model": model
             }
 

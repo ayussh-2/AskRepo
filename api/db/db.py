@@ -9,7 +9,7 @@ engine = create_engine(
     db_url,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"connect_timeout": 30}
+    connect_args={"connect_timeout": 30, "prepare_threshold": 0}
 )
 
 def get_session():

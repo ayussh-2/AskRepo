@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatusIndicator } from "@/components/workspace/status-indicator";
 
 export interface NavbarProps {
   token: string | null;
@@ -26,6 +27,7 @@ export function Navbar({ token, onLogout }: NavbarProps) {
 
         {/* Right actions */}
         <div className="flex items-center gap-2.5">
+          <StatusIndicator />
           {token ? (
             <>
               <Link
