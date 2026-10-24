@@ -41,7 +41,7 @@ Unlike naive RAG systems that slice code by arbitrary line numbers, `askRepo` pa
 > The Chrome Browser Extension codebase is preserved and available on the [`extension`](https://github.com/ayussh-2/AskRepo/tree/extension) branch. The `main` branch represents the primary web-first application.
 
 > **Note on Query Embedding & Modal:**
-> Live user queries are converted into vector embeddings before searching PostgreSQL. By default, setting `EMBEDDING_PROVIDER=local` in `api/.env` uses your local Ollama CPU instance (`embeddinggemma`) with zero external cloud dependencies. Optionally, setting `EMBEDDING_PROVIDER=modal` routes embedding requests to Modal.com (a serverless Python cloud runner that runs `embed-service/embed_app.py` on demand).
+> Live user queries are converted into vector embeddings before searching PostgreSQL. By default, setting `EMBEDDING_PROVIDER=local` in `backend/api/.env` uses your local Ollama CPU instance (`embeddinggemma`) with zero external cloud dependencies. Optionally, setting `EMBEDDING_PROVIDER=modal` routes embedding requests to Modal.com (a serverless Python cloud runner that runs `backend/embed-service/embed_app.py` on demand).
 
 ---
 
@@ -72,7 +72,7 @@ Toggle between 0-cost local CPU embedding for development and serverless GPU acc
 
 ### 5. Ingestion Pipeline
 
-- **Decoupled Heavy Operations**: Heavy cloning, AST parsing, and vector embedding execute inside **GitLab CI/CD runners** (`worker/`), keeping the main API server lightweight.
+- **Decoupled Heavy Operations**: Heavy cloning, AST parsing, and vector embedding execute inside **GitLab CI/CD runners** (`backend/worker/`), keeping the main API server lightweight.
 - **Parallel Workers**: Generates embeddings concurrently.
 - **Bulk Database Writes**: Inserts chunks into PostgreSQL in **bulk batches of 500 records**.
 
@@ -82,7 +82,7 @@ Every codebase response includes a structured `### Sources & Citations` section 
 
 ### 7. Offline RAG Evaluation Suite
 
-Includes a built-in RAG evaluation runner (`evals/run_eval.py`) with **LLM-as-a-Judge** scoring (`faithfulness`, `relevancy`, `overall_score`) and sample benchmark datasets (`evals/dataset.json`).
+Includes a built-in RAG evaluation runner (`backend/evals/run_eval.py`) with **LLM-as-a-Judge** scoring (`faithfulness`, `relevancy`, `overall_score`) and sample benchmark datasets (`backend/evals/dataset.json`).
 
 ---
 
@@ -94,19 +94,19 @@ graph TD
         Web["Next.js 16 Web Dashboard (web/)"]
     end
 
-    subgraph Backend ["API Service (api/)"]
+    subgraph Backend ["API Service (backend/api/)"]
         API["FastAPI API Server (Docker)"]
         LLMEngine["Multi-LLM Failover Engine (Gemini / Groq / Mistral)"]
         Reranker["FlashRank ONNX Reranker"]
     end
 
-    subgraph Ingestion ["Ingestion Worker (worker/)"]
+    subgraph Ingestion ["Ingestion Worker (backend/worker/)"]
         GitLabRunner["GitLab CI/CD Pipeline"]
         TreeSitter["Tree-Sitter AST Parser"]
         WorkerEmbed["Ollama (embeddinggemma)"]
     end
 
-    subgraph EmbedService ["Query Embedder (embed-service/)"]
+    subgraph EmbedService ["Query Embedder (backend/embed-service/)"]
         ModalEndpoint["Modal Serverless GPU (embeddinggemma)"]
     end
 
@@ -134,7 +134,7 @@ graph TD
 
 ## RAG Evaluation Suite
 
-`askRepo` includes an offline RAG evaluation framework (`evals/run_eval.py`) to test retrieval accuracy and generation quality.
+`askRepo` includes an offline RAG evaluation framework (`backend/evals/run_eval.py`) to test retrieval accuracy and generation quality.
 
 ### Evaluation Metrics Calculated
 
@@ -147,10 +147,10 @@ graph TD
 ```bash
 make eval
 # OR
-python evals/run_eval.py
+python backend/evals/run_eval.py
 ```
 
-Detailed evaluation benchmark reports are saved to`evals/eval_report.json`.
+Detailed evaluation benchmark reports are saved to `backend/evals/eval_report.json`.
 
 ---
 
@@ -158,37 +158,42 @@ Detailed evaluation benchmark reports are saved to`evals/eval_report.json`.
 
 ```
 repo-assistant/
-├── api/                  # FastAPI Backend Application
-│   ├── main.py           # API endpoints (/health, /ingest, /query, /status, /repos, /chat-history)
-│   ├── config.py         # Application settings & environment variables
-│   ├── db/               # SQLModel schemas & pgvector integration
-│   ├── lib/              # Redis session & history management
-│   ├── services/         # RAG pipeline, FlashRank reranker, LLM fallback engine
-│   └── Dockerfile        # Production Docker build definition
+├── backend/
+│   ├── api/                  # FastAPI Backend Application
+│   │   ├── main.py           # API endpoints (/health, /ingest, /query, /status, /repos, /chat-history)
+│   │   ├── config.py         # Application settings & environment variables
+│   │   ├── db/               # SQLModel schemas & pgvector integration
+│   │   ├── lib/              # Redis session & history management
+│   │   ├── services/         # RAG pipeline, FlashRank reranker, LLM fallback engine
+│   │   ├── tests/            # Pytest test suite (test_rag_pure.py)
+│   │   └── Dockerfile        # Production Docker build definition
+│   │
+│   ├── worker/               # Standalone Ingestion Engine (GitLab CI/CD Worker)
+│   │   ├── cli.py            # Ingestion CLI entrypoint
+│   │   ├── .gitlab-ci.yml    # GitLab runner job & model caching definition
+│   │   ├── lib/ast_parser/   # Tree-Sitter AST symbol extractor
+│   │   └── utils/            # Parallel embeddings & bulk DB insertion
+│   │
+│   ├── embed-service/        # Serverless Query Embedding Service (Modal.com)
+│   │   └── embed_app.py      # Modal GPU serverless function
+│   │
+│   ├── evals/                # Offline RAG Evaluation Suite
+│   │   ├── dataset.json      # Benchmark test cases across 4 categories
+│   │   ├── run_eval.py       # LLM-as-a-Judge benchmark runner script
+│   │   └── eval_report.json  # Output evaluation benchmark report
+│   │
+│   └── scripts/              # Migration & Database Operations
+│       └── migrate.py        # Database schema & pgvector index migrations
 │
-├── web/                  # Next.js 16 Web Dashboard Application
-│   ├── src/app/          # Next.js App Router (Home, Login, Dashboard, Chat)
-│   ├── src/components/   # Modular UI components (RepoGrid, RepoCard, AuthModal, Sidebar, ChatScreen)
-│   ├── src/context/      # Global RepoProvider context & state
-│   ├── src/hooks/        # Custom React hooks (useIngest, useChat)
-│   ├── src/lib/          # Typed API client (api.ts) & session utilities (utils.ts)
-│   └── public/models/    # Provider SVG logo assets (Gemini, Llama, Mistral, Auto)
+├── web/                      # Next.js 16 Web Dashboard Application
+│   ├── src/app/              # Next.js App Router (Home, Login, Dashboard, Chat)
+│   ├── src/components/       # Modular UI components (RepoGrid, RepoCard, AuthModal, Sidebar, ChatScreen)
+│   ├── src/context/          # Global RepoProvider context & state
+│   ├── src/hooks/            # Custom React hooks (useIngest, useChat)
+│   ├── src/lib/              # Typed API client (api.ts) & session utilities (utils.ts)
+│   └── public/models/        # Provider SVG logo assets (Gemini, Llama, Mistral, Auto)
 │
-├── worker/               # Standalone Ingestion Engine (GitLab CI/CD Worker)
-│   ├── cli.py            # Ingestion CLI entrypoint
-│   ├── .gitlab-ci.yml    # GitLab runner job & model caching definition
-│   ├── lib/ast_parser/   # Tree-Sitter AST symbol extractor
-│   └── utils/            # Parallel embeddings & bulk DB insertion
-│
-├── embed-service/        # Serverless Query Embedding Service (Modal.com)
-│   └── embed_app.py      # Modal GPU serverless function
-│
-├── evals/                # Offline RAG Evaluation Suite
-│   ├── dataset.json      # Benchmark test cases across 4 categories
-│   ├── run_eval.py       # LLM-as-a-Judge benchmark runner script
-│   └── eval_report.json  # Output evaluation benchmark report
-│
-└── Makefile              # Development & deployment command targets
+└── Makefile                  # Development & deployment command targets
 ```
 
 ---
@@ -246,7 +251,7 @@ source .venv/bin/activate
 #### Install Backend Python Dependencies
 
 ```bash
-pip install -r api/requirements.txt
+pip install -r backend/api/requirements.txt
 ```
 
 #### Install Web Application Dependencies
@@ -261,7 +266,7 @@ cd ..
 
 ### Step 4: Configure Environment Variables
 
-Create `.env` inside `api/.env`:
+Create `.env` inside `backend/api/.env`:
 
 ```env
 # API Keys (Provide at least one)
@@ -296,7 +301,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID="your_google_oauth_client_id"
 ---
 
 > **Note on `make` Utility:**  
-> The instructions below assume GNU `make` is installed on your system. If `make` is not available on your operating system (e.g. standard Windows Command Prompt without GNU tools), you can refer directly to [`Makefile`](./Makefile) to run the raw underlying commands (such as `cd api && python -m uvicorn main:app --reload --port 8000` or `cd web && bun dev`).
+> The instructions below assume GNU `make` is installed on your system. If `make` is not available on your operating system (e.g. standard Windows Command Prompt without GNU tools), you can refer directly to [`Makefile`](./Makefile) to run the raw underlying commands (such as `cd backend/api && python -m uvicorn main:app --reload --port 8000` or `cd web && bun dev`).
 
 ### Step 5: Run Locally
 
@@ -304,7 +309,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID="your_google_oauth_client_id"
 
 ```bash
 make dev-api
-# Equivalent if make is not installed: cd api && python -m uvicorn main:app --reload --port 8000
+# Equivalent if make is not installed: cd backend/api && python -m uvicorn main:app --reload --port 8000
 ```
 
 #### 2. Start Next.js Web Dashboard
@@ -318,22 +323,24 @@ make dev-web
 
 ```bash
 make dev-worker repo=https://github.com/expressjs/express
-# Equivalent if make is not installed: cd worker && python cli.py --repo-url https://github.com/expressjs/express
+# Equivalent if make is not installed: cd backend/worker && python cli.py --repo-url https://github.com/expressjs/express
 ```
 
 ---
 
 ## Makefile Commands
 
-| Command             | Description                                   | Raw Shell Command (if `make` unavailable)                                                                   |
-| ------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `make dev-api`      | Start FastAPI development server              | `cd api && python -m uvicorn main:app --reload --port 8000`                                                 |
-| `make dev-web`      | Start Next.js Web application                 | `cd web && bun dev` (or `npm run dev`)                                                                      |
-| `make dev-worker`   | Test Worker Ingestion locally for a repo      | `cd worker && python cli.py --repo-url <url>`                                                               |
-| `make eval`         | Run offline RAG evaluation benchmark          | `python evals/run_eval.py`                                                                                  |
-| `make deploy-embed` | Deploy Modal GPU serverless embedding service | `cd embed-service && python -m modal deploy embed_app.py`                                                   |
-| `make docker-build` | Build production API Docker image             | `docker build -t your_docker_username/askrepo-api:latest ./api`                                             |
-| `make docker-run`   | Run production API Docker container           | `docker run -d -p 8000:8000 --env-file api/.env --name askrepo-api your_docker_username/askrepo-api:latest` |
+| Command             | Description                                   | Raw Shell Command (if `make` unavailable)                                                                               |
+| ------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `make dev-api`      | Start FastAPI development server              | `cd backend/api && python -m uvicorn main:app --reload --port 8000`                                                     |
+| `make dev-web`      | Start Next.js Web application                 | `cd web && bun dev` (or `npm run dev`)                                                                                  |
+| `make dev-worker`   | Test Worker Ingestion locally for a repo      | `cd backend/worker && python cli.py --repo-url <url>`                                                                   |
+| `make eval`         | Run offline RAG evaluation benchmark          | `python backend/evals/run_eval.py`                                                                                      |
+| `make migrate`      | Run DB migrations & HNSW index setup          | `python backend/scripts/migrate.py`                                                                                     |
+| `make test-api`     | Run pytest test suite for RAG pure functions  | `python -m pytest backend/api/tests/test_rag_pure.py -v`                                                                |
+| `make deploy-embed` | Deploy Modal GPU serverless embedding service | `cd backend/embed-service && python -m modal deploy embed_app.py`                                                       |
+| `make docker-build` | Build production API Docker image             | `docker build -t your_docker_username/askrepo-api:latest ./backend/api`                                                 |
+| `make docker-run`   | Run production API Docker container           | `docker run -d -p 8000:8000 --env-file backend/api/.env --name askrepo-api your_docker_username/askrepo-api:latest`     |
 
 ---
 
@@ -341,7 +348,7 @@ make dev-worker repo=https://github.com/expressjs/express
 
 ```bash
 # 1. Build Docker container image
-docker build -t your_docker_username/askrepo-api:latest ./api
+docker build -t your_docker_username/askrepo-api:latest ./backend/api
 
 # 2. Push to Docker Hub
 docker push your_docker_username/askrepo-api:latest
@@ -351,6 +358,6 @@ docker run -d \
   --name askrepo-api-container \
   -p 8000:8000 \
   --restart unless-stopped \
-  --env-file api/.env \
+  --env-file backend/api/.env \
   your_docker_username/askrepo-api:latest
 ```

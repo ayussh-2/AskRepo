@@ -12,3 +12,5 @@ temp/
 error/
 
 temp.txt
+
+.pytest_cache
