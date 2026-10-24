@@ -33,7 +33,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
             iss = user_info.get("iss", "")
             if iss not in ["accounts.google.com", "https://accounts.google.com"]:
                 raise HTTPException(status_code=401, detail="Invalid token issuer")
-            # print(user_info)
             return user_info
     except httpx.RequestError as e:
         raise HTTPException(status_code=503, detail=f"Google authentication service unavailable: {e}")

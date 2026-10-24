@@ -1,11 +1,11 @@
 import hashlib
-import json
-import os
-import tiktoken
 from dataclasses import dataclass
 from typing import List
+
+import tiktoken
+
 from lib.ast_parser.data_models import ParseResult, Symbol
-from utils.constants import ENCODER_MODEL,MAX_TOKENS,OVERLAP
+from utils.constants import ENCODER_MODEL, MAX_TOKENS, OVERLAP
 
 enc = tiktoken.get_encoding(ENCODER_MODEL)
 
@@ -52,7 +52,6 @@ def chunk_symbol(symbol: Symbol, file_path: str, repo_name: str, commit_sha: str
     total = len(splits)
     chunks = []
 
-    # FIX: Unpack all 4 values
     for i, (text, token_count, rel_start, rel_end) in enumerate(splits):
         chunk_id = _make_id(repo_name, file_path, i, text)
         chunks.append(Chunk(
@@ -153,15 +152,6 @@ def chunk_parse_result(result: ParseResult, repo_name: str, commit_sha: str) -> 
         chunk_orphans(result.orphan_src, result.file_path, result.language, repo_name, commit_sha)
     )
     return all_chunks
-
-def output_to_txt(all_chunks):
-    try:
-        base_dir = os.path.dirname(__file__)
-        temp_path = os.path.join(base_dir, "temp.txt")
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(all_chunks, f, ensure_ascii=False, indent=2, default=str)
-    except Exception:
-        pass
 
 
 def create_repo_summary_chunk(repo_name: str, commit_sha: str, file_tree: str, readme_text: str) -> Chunk:

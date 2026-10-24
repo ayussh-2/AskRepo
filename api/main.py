@@ -1,21 +1,25 @@
+import logging
+import math
+import subprocess
 from typing import Optional
-from pydantic import BaseModel
-from fastapi import Body, FastAPI, Query, Depends
 
+from fastapi import Body, Depends, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
-from contextlib import asynccontextmanager
 from fastapi.responses import StreamingResponse
-
+from pydantic import BaseModel
 from sqlalchemy import func
+from sqlmodel import Session, select
+
 from config import settings
 from db.db import engine
 from db.models import IngestionStatus
-from services.gitlab import trigger_ingestion_pipeline
-from services.rag import chat_stream_handler
-from services.limiter import rate_limit, ingest_rate_limit
+from lib.redis import clear_chat_history, get_chat_history
 from services.auth import get_current_user
-import logging
+from services.gitlab import trigger_ingestion_pipeline
+from services.health import get_health_status
+from services.limiter import ingest_rate_limit, rate_limit
+from services.models import get_available_models
+from services.rag import chat_stream_handler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("api")
@@ -42,9 +46,6 @@ def success_response(status_code: int, message: str, data: Optional[dict] = None
 def error_response(status_code: int, message: str, errors: Optional[str] = None):
     return {"success": False, "message": message, "errors": errors}
 
-from services.health import get_health_status
-from services.models import get_available_models
-
 @app.get("/health")
 @app.get("/")
 def health_handler():
@@ -54,8 +55,6 @@ def health_handler():
 def get_models_handler(refresh: bool = False):
     models_data = get_available_models(force_refresh=refresh)
     return success_response(200, "Models retrieved successfully", models_data)
-
-import subprocess
 
 def get_remote_commit_sha(repo_url: str) -> str:
     try:
@@ -71,7 +70,7 @@ def get_remote_commit_sha(repo_url: str) -> str:
         if output:
             return output.split()[0]
     except Exception as e:
-        print(f"Error fetching remote commit SHA for {repo_url}: {e}")
+        logger.error(f"Error fetching remote commit SHA for {repo_url}: {e}")
     return ""
 
 @app.post("/ingest", dependencies=[Depends(ingest_rate_limit)])
@@ -165,8 +164,6 @@ async def ingest_handler(
         logger.error(f"[Ingest] Error during ingestion trigger for '{repo_url}': {e}", exc_info=True)
         return error_response(500, f"Failed to trigger ingestion pipeline: {e}")
 
-from lib.redis import get_chat_history, clear_chat_history
-
 class QueryRequest(BaseModel):
     query: str
     repo_name: Optional[str] = None
@@ -237,12 +234,10 @@ def clear_chat_history_handler(
 
 @app.get("/status", dependencies=[Depends(rate_limit)])
 def get_ingestion_status_handler(job_id: Optional[int] = None, repo_name: Optional[str] = None):
-    print(f"[DEBUG status] Query parameters: job_id={job_id}, repo_name={repo_name}")
     try:
         with Session(engine) as session:
             if job_id is not None:
                 db_status = session.get(IngestionStatus, job_id)
-                print(f"[DEBUG status] Querying by job_id={job_id}. Found: {db_status}")
                 if db_status:
                     return success_response(200, "Ingestion status retrieved", {
                         "job_id": db_status.id,
@@ -255,19 +250,13 @@ def get_ingestion_status_handler(job_id: Optional[int] = None, repo_name: Option
                 return error_response(404, f"Ingestion job with ID {job_id} not found")
 
             if repo_name is not None:
-                all_records = session.exec(
-                    select(IngestionStatus).where(func.lower(IngestionStatus.repo_name) == repo_name.lower())
-                ).all()
-                print(f"[DEBUG status] All records for repo_name='{repo_name}': {[dict(id=r.id, repo_name=r.repo_name, status=r.status) for r in all_records]}")
-                
                 db_status = session.exec(
                     select(IngestionStatus)
                     .where(func.lower(IngestionStatus.repo_name) == repo_name.lower())
                     .order_by(IngestionStatus.updated_at.desc())
                     .limit(1)
                 ).first()
-                print(f"[DEBUG status] Querying by repo_name='{repo_name}'. Selected latest: {db_status}")
-                
+
                 if db_status:
                     return success_response(200, "Ingestion status retrieved", {
                         "job_id": db_status.id,
@@ -281,7 +270,7 @@ def get_ingestion_status_handler(job_id: Optional[int] = None, repo_name: Option
 
             return error_response(400, "job_id or repo_name is required!")
     except Exception as e:
-        print(f"[DEBUG status] Exception: {e}")
+        logger.error(f"[Status] Database error during status retrieval: {e}", exc_info=True)
         return error_response(500, f"Database error during status retrieval: {e}")
 
 @app.get("/repos", dependencies=[Depends(rate_limit)])
@@ -296,12 +285,9 @@ def get_repos_handler(
         page_size = 10
 
     try:
-        import math
-        from sqlalchemy import func
         user_id = current_user.get("sub")
         with Session(engine) as session:
             stmt_ingestion = select(IngestionStatus.repo_name).where(IngestionStatus.user_id == user_id).distinct()
-            print(f"[DEBUG get_repos] SQL: {stmt_ingestion}")
             subquery = stmt_ingestion.subquery()
             count_stmt = select(func.count()).select_from(subquery)
             total_count = session.exec(count_stmt).first() or 0

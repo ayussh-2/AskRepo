@@ -33,11 +33,11 @@ def update_ingestion_status(repo_name: str, commit_sha: str, status: str, error_
                 session.add(new_status)
                 session.commit()
     except Exception as e:
-        print(f"Failed to update ingestion status for {repo_name}: {e}")
+        print(f"Failed to update ingestion status for {repo_name}: {e}", flush=True)
 
 def run_ingestion(repo_path: str, repo_name: str, commit_sha: str):
     try:
-        print(f"Parsing directory: {repo_path}")
+        print(f"Parsing directory: {repo_path}", flush=True)
         ast_results, text_results = parse_directory(repo_path)
         all_chunks = []
 
@@ -64,8 +64,8 @@ def run_ingestion(repo_path: str, repo_name: str, commit_sha: str):
         delete_repo_folder(repo_path)
 
         update_ingestion_status(repo_name, commit_sha, "completed")
-        print(f"Successfully completed ingestion for {repo_name} at commit {commit_sha}")
+        print(f"Successfully completed ingestion for {repo_name} at commit {commit_sha}", flush=True)
     except Exception as e:
-        print(f"Error in ingestion pipeline: {e}")
+        print(f"Error in ingestion pipeline: {e}", flush=True)
         update_ingestion_status(repo_name, commit_sha, "failed", str(e))
 

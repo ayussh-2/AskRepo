@@ -1,7 +1,10 @@
+import logging
 import time
 from fastapi import HTTPException, Depends
 from lib.redis import redis_client
 from services.auth import get_current_user
+
+logger = logging.getLogger("limiter")
 
 # Default limits: 30 requests per minute
 RATE_LIMIT = 30
@@ -35,9 +38,11 @@ def rate_limit(user: dict = Depends(get_current_user)):
                 status_code=429, 
                 detail=f"Rate limit exceeded. Maximum {RATE_LIMIT} requests per minute allowed."
             )
+    except HTTPException:
+        raise
     except Exception as e:
         # Fallback if Redis fails, to prevent locking out users
-        print(f"Redis Rate Limiter Error: {e}")
+        logger.error(f"Redis Rate Limiter Error: {e}")
         pass
 
 # Ingestion limit: 5 triggers per hour (to protect GitLab CI runner minutes)
@@ -66,6 +71,8 @@ def ingest_rate_limit(user: dict = Depends(get_current_user)):
                 status_code=429, 
                 detail=f"Ingestion limit exceeded. Maximum {INGEST_LIMIT} repository ingestions per hour allowed."
             )
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Redis Ingest Limiter Error: {e}")
+        logger.error(f"Redis Ingest Limiter Error: {e}")
         pass

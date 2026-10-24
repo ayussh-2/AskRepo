@@ -1,9 +1,12 @@
+import logging
 import re
 import time
+from typing import Any, Dict, List, Optional
 import httpx
-from typing import List, Dict, Any, Optional
 from google import genai
 from config import settings
+
+logger = logging.getLogger("models_service")
 
 ICON_CDN = "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@1.98.0/icons"
 
@@ -202,7 +205,7 @@ def fetch_gemini_models() -> List[Dict[str, str]]:
 
         return [format_gemini_model(model_id) for _, model_id in candidates]
     except Exception as e:
-        print(f"[Models Service] Failed to fetch Gemini models: {e}")
+        logger.warning(f"[Models Service] Failed to fetch Gemini models: {e}")
         return []
 
 
@@ -227,7 +230,7 @@ def fetch_groq_models() -> List[Dict[str, str]]:
                     result.append(format_groq_model(m_id, family))
             return result
     except Exception as e:
-        print(f"[Models Service] Failed to fetch Groq models: {e}")
+        logger.warning(f"[Models Service] Failed to fetch Groq models: {e}")
         return []
 
 
@@ -249,7 +252,7 @@ def fetch_mistral_models() -> List[Dict[str, str]]:
                     result.append(format_mistral_model(m_id))
             return result
     except Exception as e:
-        print(f"[Models Service] Failed to fetch Mistral models: {e}")
+        logger.warning(f"[Models Service] Failed to fetch Mistral models: {e}")
         return []
 
 

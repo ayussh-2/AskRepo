@@ -50,7 +50,7 @@ def clone_repo(repo_url: str) -> tuple[str, str, str]:
 
         return normalized_path, commit_sha, repo_name
     else:
-        print(f"Clone error: {result.stderr}")
+        print(f"Clone error: {result.stderr}", flush=True)
         raise RuntimeError(f"Failed to clone repository: {result.stderr}")
 
 def delete_repo_folder(repo_path: str):
@@ -60,7 +60,7 @@ def delete_repo_folder(repo_path: str):
             subprocess.run(f'rmdir /s /q "{normalized_path}"', shell=True)
         else:
             subprocess.run(["rm", "-rf", repo_path])
-        print(f"Deleted repository folder: {repo_path}")
+        print(f"Deleted repository folder: {repo_path}", flush=True)
 
 
 async def validate_repo_url(repo_url: str) -> bool:

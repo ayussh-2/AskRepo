@@ -134,7 +134,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               onClick={() => setPaletteOpen(true)}
               disabled={isLoading}
               className="relative flex items-center gap-1.5 pl-2.5 pr-2 py-1.5 border-r border-zinc-200 dark:border-[#23252a] text-zinc-600 dark:text-[#8a8f98] shrink-0 hover:text-zinc-900 dark:hover:text-[#f7f8f8] hover:bg-zinc-200/50 dark:hover:bg-[#1a1c22] rounded-l-lg transition-colors group cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Select LLM Model & Provider (⌘K)"
+              title={`Select Model: ${displayLabel} (⌘K)`}
+              aria-label={`Select Model: ${displayLabel}`}
             >
               <div className="flex items-center gap-1.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

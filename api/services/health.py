@@ -1,12 +1,15 @@
+import logging
 import time
 from datetime import datetime, timezone
+import httpx
+from google import genai
 from sqlmodel import Session, text
+from config import settings
 from db.db import engine
 from lib.redis import redis_client
-from config import settings
-from google import genai
 from services.llm import get_active_providers
-import httpx
+
+logger = logging.getLogger("health_service")
 
 try:
     import psutil
@@ -22,7 +25,7 @@ def check_postgres() -> dict:
         latency_ms = round((time.perf_counter() - start) * 1000, 2)
         return {"status": "healthy", "latency_ms": latency_ms}
     except Exception as e:
-        print(f"[Health] Postgres check failed: {e}")
+        logger.warning(f"[Health] Postgres check failed: {e}")
         return {"status": "unhealthy", "error": "Connection failed"}
 
 def check_redis() -> dict:
@@ -33,7 +36,7 @@ def check_redis() -> dict:
             return {"status": "healthy", "latency_ms": latency_ms}
         return {"status": "unhealthy", "error": "Redis ping returned False"}
     except Exception as e:
-        print(f"[Health] Redis check failed: {e}")
+        logger.warning(f"[Health] Redis check failed: {e}")
         return {"status": "unhealthy", "error": "Connection failed"}
 
 def check_llm_providers() -> dict:
@@ -89,7 +92,7 @@ def check_llm_providers() -> dict:
                 }
         except Exception as e:
             latency_ms = round((time.perf_counter() - start) * 1000, 2)
-            print(f"[Health] LLM provider '{provider}' check failed: {e}")
+            logger.warning(f"[Health] LLM provider '{provider}' check failed: {e}")
             provider_status[provider] = {
                 "configured": True,
                 "status": "unhealthy",

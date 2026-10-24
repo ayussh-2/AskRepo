@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getUserName, getStoredToken } from "@/lib/utils";
+import { getUserName } from "@/lib/utils";
 import { Sidebar } from "@/components/workspace/sidebar";
 import { ChatScreen } from "@/components/workspace/chat-screen";
 import { AuthModal } from "@/components/workspace/auth-modal";

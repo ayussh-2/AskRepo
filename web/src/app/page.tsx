@@ -7,7 +7,6 @@ import { Hero } from "@/components/workspace/hero";
 import { Footer } from "@/components/workspace/footer";
 import {
   getUserName,
-  getStoredToken,
   isValidRepoUrl,
   normalizeRepoUrl,
 } from "@/lib/utils";

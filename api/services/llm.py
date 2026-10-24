@@ -76,7 +76,6 @@ async def generate_text_with_fallback(
             if provider == "gemini":
                 dynamic_gemini = get_default_model_for_provider("gemini") or settings.gemini_llm_model
                 model_to_use = preferred_model if (preferred_provider == "gemini" and preferred_model) else dynamic_gemini
-                print(f"[LLM Processing] Processing text request with provider '{provider}' (model: '{model_to_use}')...")
                 logger.info(f"[LLM Processing] Processing text request with provider '{provider}' (model: '{model_to_use}')...")
                 
                 client = genai.Client(api_key=settings.gemini_api_key)
@@ -85,12 +84,11 @@ async def generate_text_with_fallback(
                     model=model_to_use,
                     contents=full_prompt
                 )
-                print(f"[LLM Success] Request successfully completed by provider '{provider}' (model: '{model_to_use}').")
+                logger.info(f"[LLM Success] Request successfully completed by provider '{provider}' (model: '{model_to_use}').")
                 return response.text.strip() if response.text else ""
             else:
                 custom_m = preferred_model if (preferred_provider == provider and preferred_model) else None
                 oai_client, model = get_openai_client(provider, custom_m)
-                print(f"[LLM Processing] Processing text request with provider '{provider}' (model: '{model}')...")
                 logger.info(f"[LLM Processing] Processing text request with provider '{provider}' (model: '{model}')...")
                 
                 messages = prepare_openai_messages([], prompt, system_instruction or "")
@@ -100,12 +98,11 @@ async def generate_text_with_fallback(
                     temperature=0.3
                 )
                 content = response.choices[0].message.content
-                print(f"[LLM Success] Request successfully completed by provider '{provider}' (model: '{model}').")
+                logger.info(f"[LLM Success] Request successfully completed by provider '{provider}' (model: '{model}').")
                 return content.strip() if content else ""
         except Exception as e:
             model_info = preferred_model if preferred_model else ("gemini" if provider == "gemini" else getattr(settings, f"{provider}_llm_model", ""))
-            print(f"[LLM Fallback Alert] Provider '{provider}' (model: '{model_info}') failed with error: {e}. Falling back to next available provider...")
-            logger.warning(f"[LLM Fallback Alert] Provider '{provider}' (model: '{model_info}') failed: {e}")
+            logger.warning(f"[LLM Fallback Alert] Provider '{provider}' (model: '{model_info}') failed with error: {e}. Falling back to next available provider...")
             errors.append(f"{provider}: {e}")
 
     raise RuntimeError(f"All active LLM providers failed. Errors: {'; '.join(errors)}")
@@ -121,14 +118,13 @@ async def generate_stream_with_fallback(
         is_valid, validation_err = validate_model_rules(preferred_model, preferred_provider)
         if not is_valid:
             error_msg = f"[Error: Invalid model '{preferred_model}'. {validation_err}]"
-            print(f"[LLM Error] {error_msg}")
             logger.error(f"[LLM Error] {error_msg}")
             yield error_msg
             return
 
     active_providers = get_active_providers(preferred_provider)
     if not active_providers:
-        print("[LLM Error] No LLM provider API keys are configured.")
+        logger.error("[LLM Error] No LLM provider API keys are configured.")
         yield "Error: No LLM provider API keys configured."
         return
 
@@ -140,7 +136,6 @@ async def generate_stream_with_fallback(
             if provider == "gemini":
                 dynamic_gemini = get_default_model_for_provider("gemini") or settings.gemini_llm_model
                 model_to_use = preferred_model if (preferred_provider == "gemini" and preferred_model) else dynamic_gemini
-                print(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model_to_use}')...")
                 logger.info(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model_to_use}')...")
 
                 is_switched = len(errors) > 0 or (
@@ -186,13 +181,12 @@ async def generate_stream_with_fallback(
                         has_yielded = True
                         yield chunk.text
                 if has_yielded:
-                    print(f"[LLM Success] Streaming request successfully completed by provider '{provider}' (model: '{model_to_use}').")
+                    logger.info(f"[LLM Success] Streaming request successfully completed by provider '{provider}' (model: '{model_to_use}').")
                     return
 
             else:
                 custom_m = preferred_model if (preferred_provider == provider and preferred_model) else None
                 oai_client, model = get_openai_client(provider, custom_m)
-                print(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model}')...")
                 logger.info(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model}')...")
 
                 is_switched = len(errors) > 0 or (
@@ -224,18 +218,17 @@ async def generate_stream_with_fallback(
                         has_yielded = True
                         yield text
                 if has_yielded:
-                    print(f"[LLM Success] Streaming request successfully completed by provider '{provider}' (model: '{model}').")
+                    logger.info(f"[LLM Success] Streaming request successfully completed by provider '{provider}' (model: '{model}').")
                     return
 
         except Exception as e:
             model_info = preferred_model if preferred_model else ("gemini" if provider == "gemini" else getattr(settings, f"{provider}_llm_model", ""))
-            print(f"[LLM Fallback Alert] Provider '{provider}' (model: '{model_info}') failed with error: {e}. Falling back to next available provider...")
-            logger.warning(f"[LLM Fallback Alert] Provider '{provider}' (model: '{model_info}') failed: {e}")
+            logger.warning(f"[LLM Fallback Alert] Provider '{provider}' (model: '{model_info}') failed with error: {e}. Falling back to next available provider...")
             errors.append(f"{provider}: {e}")
             if has_yielded:
                 # If we already yielded text to the client before crashing, don't restart generation on another provider
                 yield f"\n[Stream interrupted from provider {provider}: {e}]"
                 return
 
-    print(f"[LLM Error] All active LLM providers failed. Errors: {'; '.join(errors)}")
+    logger.error(f"[LLM Error] All active LLM providers failed. Errors: {'; '.join(errors)}")
     yield f"\n[Error: All LLM providers failed. Details: {'; '.join(errors)}]"

@@ -1,10 +1,9 @@
 import asyncio
-import inspect
 import json
 import logging
 import re
 from collections import defaultdict
-from typing import Any, AsyncGenerator, Dict, List, Optional, Set, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
 import httpx
 import tiktoken
@@ -215,8 +214,8 @@ def search_chunks_sync(
         return merged_candidates, import_chunks
 
 
-# Backward-compatible sync search wrapper
 def search_chunk(query_embedding: List[float], repo_name: str, candidate_k: int = 15) -> List[RepoChunk]:
+    """Backward-compatible search wrapper returning combined content and import chunks."""
     content_chunks, import_chunks = search_chunks_sync(query_embedding, repo_name, candidate_k=candidate_k)
     seen_ids = {c.id for c in content_chunks}
     extra = [i for i in import_chunks if i.id not in seen_ids]
@@ -316,8 +315,8 @@ def rerank_chunks_sync(
         return candidate_chunks[:top_k]
 
 
-# Backward-compatible rerank function
 def rerank_chunks(query: str, candidate_chunks: List[RepoChunk], top_k: int = 4) -> List[RepoChunk]:
+    """Backward-compatible reranking wrapper delegating to rerank_chunks_sync."""
     return rerank_chunks_sync(query, candidate_chunks, top_k=top_k)
 
 

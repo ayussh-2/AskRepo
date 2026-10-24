@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Search, Check, X, RotateCw, Cpu } from "lucide-react";
+import { Search, X, RotateCw, Cpu } from "lucide-react";
 import { fetchModelsApi, ProviderGroup } from "@/lib/api";
+import { ModelItem, FlatModelItem } from "./model-item";
 
 export interface ModelPaletteProps {
   isOpen: boolean;
@@ -68,14 +69,7 @@ export const ModelPalette: React.FC<ModelPaletteProps> = ({
   // Flatten models for unified keyboard navigation and searching
   const filteredList = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const result: Array<{
-      type: "model";
-      providerId: string;
-      providerName: string;
-      modelId: string;
-      modelName: string;
-      icon: string;
-    }> = [];
+    const result: FlatModelItem[] = [];
 
     providers.forEach((p) => {
       if (activeTab !== "all" && activeTab !== p.id) return;
@@ -227,7 +221,6 @@ export const ModelPalette: React.FC<ModelPaletteProps> = ({
                   : "text-zinc-500 hover:text-zinc-900 dark:text-[#8a8f98] dark:hover:text-[#f7f8f8] hover:bg-zinc-200/50 dark:hover:bg-[#16171b]"
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <span className="flex h-5 w-5 items-center justify-center rounded-md bg-zinc-100 dark:bg-white/10 ring-1 ring-zinc-200 dark:ring-[#23252a]">
                 <img
                   src={p.icon}
@@ -267,58 +260,18 @@ export const ModelPalette: React.FC<ModelPaletteProps> = ({
                 const isHighlighted = highlightedIndex === index;
 
                 return (
-                  <button
+                  <ModelItem
                     key={`${item.providerId}-${item.modelId}`}
-                    data-index={index}
-                    onClick={() => {
-                      onSelect(item.providerId, item.modelId, item.icon);
+                    item={item}
+                    index={index}
+                    isSelected={isSelected}
+                    isHighlighted={isHighlighted}
+                    onSelect={(provId, modId, icon) => {
+                      onSelect(provId, modId, icon);
                       onClose();
                     }}
                     onMouseEnter={() => setHighlightedIndex(index)}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all group ${
-                      isHighlighted
-                        ? "bg-zinc-100 dark:bg-[#1c1e24] text-zinc-900 dark:text-[#f7f8f8]"
-                        : "hover:bg-zinc-50 dark:hover:bg-[#15161b] text-zinc-700 dark:text-[#c9cbd0]"
-                    } ${isSelected ? "border border-[#5e6ad2]/50 bg-indigo-50/50 dark:bg-[#161822]" : ""}`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="size-7 rounded-lg bg-zinc-100 dark:bg-[#181920] border border-zinc-200 dark:border-[#282a33] flex items-center justify-center shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <span className="">
-                          <img
-                            src={item.icon}
-                            alt={item.modelName}
-                            className="size-5 object-contain dark:[&[src*='openai.svg']]:invert dark:[&[src*='groq.svg']]:invert"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = "none";
-                            }}
-                          />
-                        </span>
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate text-zinc-900 dark:text-[#f7f8f8]">
-                            {item.modelName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-[#6e727c]">
-                          <span>{item.providerName}</span>
-                          <span>•</span>
-                          <span className="font-mono text-[11px] text-zinc-400 dark:text-[#555963] truncate">
-                            {item.modelId}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {isSelected && (
-                        <div className="size-5 rounded-full bg-[#5e6ad2] text-white flex items-center justify-center">
-                          <Check size={12} strokeWidth={3} />
-                        </div>
-                      )}
-                    </div>
-                  </button>
+                  />
                 );
               })}
             </div>
