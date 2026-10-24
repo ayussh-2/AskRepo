@@ -30,6 +30,14 @@ def add_chat_message(user_id: str, repo_name: str, role: str, content: str):
     redis_client.rpush(key, json.dumps(message_data))
     redis_client.expire(key, SESSION_TTL)
 
+def add_chat_messages(user_id: str, repo_name: str, messages: List[Dict[str, str]]):
+    if not messages:
+        return
+    key = get_session_key(user_id, repo_name)
+    payloads = [json.dumps(m) for m in messages]
+    redis_client.rpush(key, *payloads)
+    redis_client.expire(key, SESSION_TTL)
+
 def save_all_history(user_id: str, repo_name: str, history: List[Dict[str, str]]):
     key = get_session_key(user_id, repo_name)
     redis_client.delete(key)
@@ -37,6 +45,28 @@ def save_all_history(user_id: str, repo_name: str, history: List[Dict[str, str]]
         redis_client.rpush(key, *[json.dumps(m) for m in history])
         redis_client.expire(key, SESSION_TTL)
 
+def get_summary_key(user_id: str, repo_name: str) -> str:
+    clean_user = user_id.replace(":", "_")
+    clean_repo = repo_name.lower().replace("/", ":")
+    return f"chat_summary:{clean_user}:{clean_repo}"
+
+def get_chat_summary(user_id: str, repo_name: str) -> Optional[str]:
+    key = get_summary_key(user_id, repo_name)
+    val = redis_client.get(key)
+    return str(val) if val else None
+
+def save_chat_summary(user_id: str, repo_name: str, summary: str):
+    key = get_summary_key(user_id, repo_name)
+    if summary and summary.strip():
+        redis_client.set(key, summary.strip(), ex=SESSION_TTL)
+    else:
+        redis_client.delete(key)
+
+def clear_chat_summary(user_id: str, repo_name: str):
+    key = get_summary_key(user_id, repo_name)
+    redis_client.delete(key)
+
 def clear_chat_history(user_id: str, repo_name: str):
     key = get_session_key(user_id, repo_name)
     redis_client.delete(key)
+    clear_chat_summary(user_id, repo_name)

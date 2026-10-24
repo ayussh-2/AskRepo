@@ -170,7 +170,7 @@ from lib.redis import get_chat_history, clear_chat_history
 class QueryRequest(BaseModel):
     query: str
     repo_name: Optional[str] = None
-    top_k: Optional[int] = 4
+    top_k: Optional[int] = None
     provider: Optional[str] = None
     model: Optional[str] = None
 
@@ -179,14 +179,14 @@ async def query_ask_handler(
     request_body: Optional[QueryRequest] = Body(None),
     repo_name: Optional[str] = Query(None),
     query: Optional[str] = Query(None),
-    top_k: int = 4,
+    top_k: Optional[int] = Query(None),
     provider: Optional[str] = Query(None),
     model: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user)
 ):
     final_query = (request_body.query if request_body and request_body.query else query) or ""
     final_repo = (request_body.repo_name if request_body and request_body.repo_name else repo_name) or ""
-    final_top_k = request_body.top_k if (request_body and request_body.top_k) else top_k
+    final_top_k = request_body.top_k if (request_body and request_body.top_k is not None) else top_k
     final_provider = request_body.provider if (request_body and request_body.provider) else provider
     final_model = request_body.model if (request_body and request_body.model) else model
 

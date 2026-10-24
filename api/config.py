@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +33,8 @@ class Settings(BaseSettings):
     modal_embed_url: str = "https://your-workspace--askrepo-embed-embed.modal.run"
     modal_embed_token: str = ""
     embedding_model: str = "embeddinggemma"
+    embedding_query_prefix: str = "title: none | text: "
+    similarity_distance_threshold: Optional[float] = None
     env: str = "production"
 
 
