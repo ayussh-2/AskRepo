@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from lib.redis import get_chat_history, add_chat_message, save_all_history
 from sqlalchemy import func
 from services.llm import generate_text_with_fallback, generate_stream_with_fallback
+from services.models import validate_model_rules
 import re
 
 try:
@@ -254,6 +255,14 @@ async def chat_stream_handler(
         {context}
         """.strip()
 
+        # In the final stage where context goes to the model, validate that the model is valid via rules in models.py
+        if model and model != "auto":
+            is_valid, validation_err = validate_model_rules(model, provider)
+            if not is_valid:
+                error_msg = f"[Error: Model validation failed. {validation_err}]"
+                print(f"[RAG Validation Error] {error_msg}")
+                yield error_msg
+                return
 
         full_response = ""
         async for chunk in generate_stream_with_fallback(
@@ -267,7 +276,8 @@ async def chat_stream_handler(
             yield chunk
 
         if full_response and not full_response.startswith("[Error:"):
-            add_chat_message(user_id, repo_name, "model", full_response)
+            clean_history_text = re.sub(r"<!-- MODEL_SWITCH:.*?-->\r?\n?", "", full_response)
+            add_chat_message(user_id, repo_name, "model", clean_history_text)
 
     except Exception as e:
         print(f"Error in chat_stream_handler: {e}")

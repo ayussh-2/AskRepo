@@ -6,7 +6,7 @@ env_file_path = os.path.abspath(os.path.join(current_dir, ".env"))
 
 class Settings(BaseSettings):
     gemini_api_key: str = ""
-    gemini_llm_model: str = "gemini-3.1-flash-lite"
+    gemini_llm_model: str = "gemini-3.5-flash-lite"
 
     groq_api_key: str = ""
     groq_llm_model: str = "llama-3.3-70b-versatile"
@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     cerebras_llm_model: str = "llama-3.3-70b"
 
     mistral_api_key: str = ""
-    mistral_llm_model: str = "mistral-small-latest"
+    mistral_llm_model: str = ""
 
     # Fallback order of providers (comma separated)
-    llm_provider_order: str = "gemini,groq,mistral"
+    llm_provider_order: str = "gemini,groq"
 
 
     database_url: str = "postgresql://user:password@localhost/dbname"

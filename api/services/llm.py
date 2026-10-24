@@ -1,9 +1,11 @@
 import logging
+import json
 from typing import List, Dict, Optional, AsyncGenerator
 import openai
 from google import genai
 from google.genai import types
 from config import settings
+from services.models import validate_model_rules, get_default_model_for_provider
 
 logger = logging.getLogger("llm_service")
 
@@ -20,7 +22,6 @@ def get_active_providers(preferred_provider: Optional[str] = None) -> List[str]:
     provider_keys = {
         "gemini": settings.gemini_api_key,
         "groq": settings.groq_api_key,
-        "mistral": settings.mistral_api_key,
     }
 
     for p in raw_order:
@@ -30,15 +31,13 @@ def get_active_providers(preferred_provider: Optional[str] = None) -> List[str]:
 
 def get_openai_client(provider: str, custom_model: Optional[str] = None) -> tuple[openai.AsyncOpenAI, str]:
     if provider == "groq":
+        model = custom_model or get_default_model_for_provider("groq") or settings.groq_llm_model
         return openai.AsyncOpenAI(
             api_key=settings.groq_api_key,
             base_url="https://api.groq.com/openai/v1"
-        ), custom_model or settings.groq_llm_model
+        ), model
     elif provider == "mistral":
-        return openai.AsyncOpenAI(
-            api_key=settings.mistral_api_key,
-            base_url="https://api.mistral.ai/v1"
-        ), custom_model or settings.mistral_llm_model
+        raise ValueError("Mistral provider is currently disabled.")
     else:
         raise ValueError(f"Unknown OpenAI-compatible provider: {provider}")
 
@@ -62,6 +61,11 @@ async def generate_text_with_fallback(
     preferred_provider: Optional[str] = None,
     preferred_model: Optional[str] = None
 ) -> str:
+    if preferred_model and preferred_model != "auto":
+        is_valid, validation_err = validate_model_rules(preferred_model, preferred_provider)
+        if not is_valid:
+            raise ValueError(f"Invalid model '{preferred_model}': {validation_err}")
+
     active_providers = get_active_providers(preferred_provider)
     if not active_providers:
         raise RuntimeError("No LLM providers have active API keys configured.")
@@ -70,7 +74,8 @@ async def generate_text_with_fallback(
     for provider in active_providers:
         try:
             if provider == "gemini":
-                model_to_use = preferred_model if (preferred_provider == "gemini" and preferred_model) else settings.gemini_llm_model
+                dynamic_gemini = get_default_model_for_provider("gemini") or settings.gemini_llm_model
+                model_to_use = preferred_model if (preferred_provider == "gemini" and preferred_model) else dynamic_gemini
                 print(f"[LLM Processing] Processing text request with provider '{provider}' (model: '{model_to_use}')...")
                 logger.info(f"[LLM Processing] Processing text request with provider '{provider}' (model: '{model_to_use}')...")
                 
@@ -112,6 +117,15 @@ async def generate_stream_with_fallback(
     preferred_provider: Optional[str] = None,
     preferred_model: Optional[str] = None
 ) -> AsyncGenerator[str, None]:
+    if preferred_model and preferred_model != "auto":
+        is_valid, validation_err = validate_model_rules(preferred_model, preferred_provider)
+        if not is_valid:
+            error_msg = f"[Error: Invalid model '{preferred_model}'. {validation_err}]"
+            print(f"[LLM Error] {error_msg}")
+            logger.error(f"[LLM Error] {error_msg}")
+            yield error_msg
+            return
+
     active_providers = get_active_providers(preferred_provider)
     if not active_providers:
         print("[LLM Error] No LLM provider API keys are configured.")
@@ -122,10 +136,25 @@ async def generate_stream_with_fallback(
     for provider in active_providers:
         try:
             has_yielded = False
+            switch_emitted = False
             if provider == "gemini":
-                model_to_use = preferred_model if (preferred_provider == "gemini" and preferred_model) else settings.gemini_llm_model
+                dynamic_gemini = get_default_model_for_provider("gemini") or settings.gemini_llm_model
+                model_to_use = preferred_model if (preferred_provider == "gemini" and preferred_model) else dynamic_gemini
                 print(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model_to_use}')...")
                 logger.info(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model_to_use}')...")
+
+                is_switched = len(errors) > 0 or (
+                    preferred_model and preferred_model != "auto" and model_to_use != preferred_model
+                ) or (
+                    preferred_provider and preferred_provider != "auto" and provider != preferred_provider
+                )
+                switch_payload = {
+                    "event": "model_switched",
+                    "original_provider": preferred_provider,
+                    "original_model": preferred_model,
+                    "provider": provider,
+                    "model": model_to_use,
+                }
 
                 client = genai.Client(api_key=settings.gemini_api_key)
                 contents = []
@@ -151,6 +180,9 @@ async def generate_stream_with_fallback(
                 )
                 async for chunk in response:
                     if chunk.text:
+                        if not switch_emitted and is_switched:
+                            yield f"<!-- MODEL_SWITCH:{json.dumps(switch_payload)} -->\n"
+                            switch_emitted = True
                         has_yielded = True
                         yield chunk.text
                 if has_yielded:
@@ -163,6 +195,19 @@ async def generate_stream_with_fallback(
                 print(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model}')...")
                 logger.info(f"[LLM Processing] Processing streaming request with provider '{provider}' (model: '{model}')...")
 
+                is_switched = len(errors) > 0 or (
+                    preferred_model and preferred_model != "auto" and model != preferred_model
+                ) or (
+                    preferred_provider and preferred_provider != "auto" and provider != preferred_provider
+                )
+                switch_payload = {
+                    "event": "model_switched",
+                    "original_provider": preferred_provider,
+                    "original_model": preferred_model,
+                    "provider": provider,
+                    "model": model,
+                }
+
                 messages = prepare_openai_messages(history, query, system_instruction)
                 stream = await oai_client.chat.completions.create(
                     model=model,
@@ -173,6 +218,9 @@ async def generate_stream_with_fallback(
                 async for chunk in stream:
                     if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
                         text = chunk.choices[0].delta.content
+                        if not switch_emitted and is_switched:
+                            yield f"<!-- MODEL_SWITCH:{json.dumps(switch_payload)} -->\n"
+                            switch_emitted = True
                         has_yielded = True
                         yield text
                 if has_yielded:

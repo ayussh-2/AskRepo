@@ -54,7 +54,7 @@ def check_llm_providers() -> dict:
         },
     }
 
-    for provider in ["gemini", "groq", "mistral"]:
+    for provider in ["gemini", "groq"]:
         key = getattr(settings, f"{provider}_api_key", "")
         model = getattr(settings, f"{provider}_llm_model", "")
         if not key:
@@ -71,7 +71,6 @@ def check_llm_providers() -> dict:
                     "configured": True,
                     "status": "healthy",
                     "latency_ms": latency_ms,
-                    "model": model_info.name.split("/")[-1] if hasattr(model_info, 'name') else model
                 }
             else:
                 # Actually ping the /models endpoint to verify connectivity
@@ -87,7 +86,6 @@ def check_llm_providers() -> dict:
                     "configured": True,
                     "status": "healthy",
                     "latency_ms": latency_ms,
-                    "model": model
                 }
         except Exception as e:
             latency_ms = round((time.perf_counter() - start) * 1000, 2)
@@ -97,7 +95,6 @@ def check_llm_providers() -> dict:
                 "status": "unhealthy",
                 "latency_ms": latency_ms,
                 "error": "Connection failed",
-                "model": model
             }
 
     return {

@@ -1,25 +1,77 @@
 import * as React from "react";
 import { useState } from "react";
-import { Copy, Check, Terminal } from "lucide-react";
+import { Copy, Check, Terminal, ExternalLink } from "lucide-react";
 import { Message } from "./types";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { tokenizeCode } from "@/lib/utils";
 
-// Inline markdown helper: **bold**, *italic*, `code`
+// Inline markdown helper: **bold**, *italic*, `code`, [link](url), bare URLs
 function renderInlineMarkdown(text: string): React.ReactNode[] {
-  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`\n]+`)/g;
+  const pattern = /(\[[^\]]+\]\([^\s)]+\)|https?:\/\/[^\s<>)\]"]+|\*\*[^*]+\*\*|\*[^*]+\*|`[^`\n]+`)/g;
   const parts = text.split(pattern);
+
   return parts.map((part, i) => {
+    // 1. Markdown Links: [text](url)
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^\s)]+)\)$/);
+    if (linkMatch) {
+      const linkText = linkMatch[1];
+      const linkUrl = linkMatch[2];
+      return (
+        <a
+          key={i}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#5e6ad2] dark:text-[#7e8ce0] hover:underline underline-offset-2 break-all font-medium inline-flex items-center gap-0.5 hover:opacity-85 transition-opacity"
+        >
+          <span>{linkText}</span>
+          <ExternalLink size={11} className="inline opacity-70 shrink-0" />
+        </a>
+      );
+    }
+
+    // 2. Bare URLs: https://... or http://...
+    if (/^https?:\/\//.test(part)) {
+      let url = part;
+      let trailing = "";
+      const trailMatch = url.match(/([.,;:!?]+)$/);
+      if (trailMatch) {
+        trailing = trailMatch[1];
+        url = url.slice(0, -trailing.length);
+      }
+      return (
+        <React.Fragment key={i}>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#5e6ad2] dark:text-[#7e8ce0] hover:underline underline-offset-2 break-all font-medium inline-flex items-center gap-0.5 hover:opacity-85 transition-opacity"
+          >
+            <span>{url}</span>
+            <ExternalLink size={11} className="inline opacity-70 shrink-0" />
+          </a>
+          {trailing && <span>{trailing}</span>}
+        </React.Fragment>
+      );
+    }
+
+    // 3. Bold: **text**
     if (part.startsWith("**") && part.endsWith("**"))
-      return <strong key={i} className="font-semibold text-[#f7f8f8]">{part.slice(2, -2)}</strong>;
+      return <strong key={i} className="font-semibold text-zinc-900 dark:text-[#f7f8f8]">{part.slice(2, -2)}</strong>;
+
+    // 4. Italic: *text*
     if (part.startsWith("*") && part.endsWith("*"))
       return <em key={i}>{part.slice(1, -1)}</em>;
+
+    // 5. Code: `code`
     if (part.startsWith("`") && part.endsWith("`"))
       return (
-        <code key={i} className="px-1.5 py-0.5 mx-0.5 rounded bg-[#202020] border border-[#23252a] font-mono text-[12.5px] text-[#5e6ad2]">
+        <code key={i} className="px-1.5 py-0.5 mx-0.5 rounded bg-zinc-200/60 dark:bg-[#202020] border border-zinc-300 dark:border-[#23252a] font-mono text-[12.5px] text-[#5e6ad2] dark:text-[#7e8ce0]">
           {part.slice(1, -1)}
         </code>
       );
+
+    // 6. Regular text
     return <span key={i}>{part}</span>;
   });
 }
@@ -151,6 +203,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading, is
           isUser ? "ml-auto items-end" : "mr-auto items-start"
         }`}
       >
+        {!isUser && message.switchedModel && (
+          <div className="mb-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-medium animate-in fade-in duration-200">
+            <span className="flex size-1.5 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+            <span>
+              The requested model was unavailable. Automatically switched to{" "}
+              <strong className="font-semibold text-zinc-900 dark:text-[#f7f8f8]">
+                {message.switchedModel.model.split("/").pop()?.replace(/-/g, " ")}
+              </strong>{" "}
+              ({message.switchedModel.provider}).
+            </span>
+          </div>
+        )}
+
         <div
           className={`p-3 rounded-2xl border text-sm leading-relaxed ${
             isUser

@@ -37,8 +37,32 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     let active = true;
 
     fetchModelsApi().then((res) => {
-      if (active && res.success) {
+      if (active && res.success && res.data?.providers?.length) {
         setProviders(res.data.providers);
+
+        // Select the default first model that comes from the api
+        const firstProvider = res.data.providers[0];
+        const firstModel = firstProvider?.models?.[0];
+        const defaultProv =
+          res.data.default?.provider && res.data.default?.provider !== "auto"
+            ? res.data.default.provider
+            : firstProvider?.id;
+        const defaultMod =
+          res.data.default?.model && res.data.default?.model !== "auto"
+            ? res.data.default.model
+            : firstModel?.id;
+
+        if (
+          defaultProv &&
+          defaultMod &&
+          (!provider || provider === "auto" || !model || model === "auto")
+        ) {
+          if (onSelectModel) {
+            onSelectModel(defaultProv, defaultMod);
+          } else if (onProviderChange) {
+            onProviderChange(defaultProv);
+          }
+        }
       }
     });
 
@@ -84,17 +108,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const selectedProvider = providers.find((item) => item.id === provider);
-  const selectedModel = selectedProvider?.models.find(
-    (item) => item.id === model,
-  );
+  const selectedProvider =
+    providers.find((item) => item.id === provider) ||
+    (provider === "auto" ? providers[0] : undefined);
+  const selectedModel =
+    selectedProvider?.models.find((item) => item.id === model) ||
+    (model === "auto" ? selectedProvider?.models?.[0] : undefined);
   const displayIcon = selectedModel?.icon || selectedProvider?.icon;
   const displayLabel =
-    provider === "auto"
+    selectedModel?.name ||
+    (provider === "auto"
       ? "Auto"
       : model && model !== "auto"
         ? model.split("/").pop()?.replace(/-/g, " ")
-        : provider;
+        : provider);
 
   return (
     <>

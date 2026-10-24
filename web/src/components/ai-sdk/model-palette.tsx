@@ -261,8 +261,9 @@ export const ModelPalette: React.FC<ModelPaletteProps> = ({
             <div className="space-y-1">
               {filteredList.map((item, index) => {
                 const isSelected =
-                  selectedProvider === item.providerId &&
-                  selectedModel === item.modelId;
+                  (selectedProvider === item.providerId &&
+                    selectedModel === item.modelId) ||
+                  ((!selectedModel || selectedModel === "auto") && index === 0);
                 const isHighlighted = highlightedIndex === index;
 
                 return (

@@ -301,6 +301,7 @@ def get_repos_handler(
         user_id = current_user.get("sub")
         with Session(engine) as session:
             stmt_ingestion = select(IngestionStatus.repo_name).where(IngestionStatus.user_id == user_id).distinct()
+            print(f"[DEBUG get_repos] SQL: {stmt_ingestion}")
             subquery = stmt_ingestion.subquery()
             count_stmt = select(func.count()).select_from(subquery)
             total_count = session.exec(count_stmt).first() or 0

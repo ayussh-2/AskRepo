@@ -27,17 +27,11 @@ EXCLUDE_KEYWORDS = [
     "fim", "vibe-cli"
 ]
 
-# Gemini: only "flash" and "flash-lite" models (any version)
-GEMINI_FLASH_RE = re.compile(r"^gemini-(\d+(?:\.\d+)*)-flash(?:-lite)?(?:-.+)?$")
+# Gemini: only "flash-lite" models (any version)
+GEMINI_FLASH_LITE_RE = re.compile(r"^gemini-(\d+(?:\.\d+)*)-flash-lite(?:-.+)?$")
 
 # How many distinct Gemini generations to show (current + 2 previous)
 GEMINI_GENERATIONS_TO_KEEP = 3
-
-# Mistral: exact allow-list
-MISTRAL_ALLOWED = {
-    "mistral-small-latest",
-    "mistral-medium-latest",
-}
 
 # Groq: popular model families -> (keyword, icon key)
 GROQ_FAMILIES = [
@@ -61,12 +55,16 @@ def is_usable_model(name: str) -> bool:
     return not any(kw in name_lower for kw in EXCLUDE_KEYWORDS)
 
 
-def parse_gemini_flash_version(model_id: str) -> Optional[tuple]:
-    """'gemini-2.5-flash-lite' -> (2, 5). Returns None if not a flash/flash-lite model."""
-    match = GEMINI_FLASH_RE.match(model_id.lower())
+def parse_gemini_flash_lite_version(model_id: str) -> Optional[tuple]:
+    """'gemini-2.5-flash-lite' -> (2, 5). Returns None if not a flash-lite model."""
+    match = GEMINI_FLASH_LITE_RE.match(model_id.lower())
     if not match:
         return None
     return tuple(int(p) for p in match.group(1).split("."))
+
+
+# Backward compatibility alias
+parse_gemini_flash_version = parse_gemini_flash_lite_version
 
 
 def get_groq_family(model_id: str) -> Optional[str]:
@@ -74,6 +72,64 @@ def get_groq_family(model_id: str) -> Optional[str]:
     for keyword, icon_key in GROQ_FAMILIES:
         if keyword in mid:
             return ICONS[icon_key]
+    return None
+
+
+def validate_model_rules(model_id: Optional[str], provider: Optional[str] = None) -> tuple[bool, str]:
+    """
+    Validates whether a model_id is valid according to the filtering rules in models.py.
+    Returns (is_valid, error_reason).
+    """
+    if not model_id or model_id.strip() == "" or model_id.lower() == "auto":
+        return True, ""
+
+    clean_id = model_id.strip()
+    if clean_id.startswith("models/"):
+        clean_id = clean_id.replace("models/", "")
+
+    # 1. Base rule: must not contain any excluded keyword
+    if not is_usable_model(clean_id):
+        matched_kw = [kw for kw in EXCLUDE_KEYWORDS if kw in clean_id.lower()]
+        return False, f"Model '{model_id}' contains excluded keyword(s): {', '.join(matched_kw)}"
+
+    prov = provider.lower().strip() if provider and provider.lower().strip() != "auto" else None
+
+    if prov == "gemini":
+        if parse_gemini_flash_lite_version(clean_id) is None:
+            return False, f"Model '{model_id}' is not a valid Gemini Flash-Lite model (only flash-lite models are allowed)."
+        return True, ""
+
+    elif prov == "mistral":
+        return False, "Mistral provider is currently disabled."
+
+    elif prov == "groq":
+        if not get_groq_family(clean_id):
+            return False, f"Model '{model_id}' does not belong to any supported Groq model families: {[f[0] for f in GROQ_FAMILIES]}."
+        return True, ""
+
+    elif prov is None:
+        # Check if valid under ANY supported provider (Mistral disabled)
+        is_gemini = parse_gemini_flash_lite_version(clean_id) is not None
+        is_groq = get_groq_family(clean_id) is not None
+
+        if not (is_gemini or is_groq):
+            return False, f"Model '{model_id}' does not conform to rules for any supported provider (Gemini Flash-Lite or Groq families)."
+        return True, ""
+
+    else:
+        return False, f"Unknown provider '{provider}'."
+
+
+def get_default_model_for_provider(provider: str) -> Optional[str]:
+    """
+    Returns the first dynamically available model for a provider from get_available_models().
+    """
+    models_data = get_available_models()
+    for prov in models_data.get("providers", []):
+        if prov.get("id") == provider:
+            models = prov.get("models", [])
+            if models:
+                return models[0]["id"]
     return None
 
 
@@ -131,7 +187,7 @@ def fetch_gemini_models() -> List[Dict[str, str]]:
             model_id = m.name.replace("models/", "")
             if not is_usable_model(model_id):
                 continue
-            version = parse_gemini_flash_version(model_id)
+            version = parse_gemini_flash_lite_version(model_id)
             if version is None:
                 continue
             candidates.append((version, model_id))
@@ -189,7 +245,7 @@ def fetch_mistral_models() -> List[Dict[str, str]]:
             result = []
             for item in data:
                 m_id = item.get("id", "")
-                if m_id in MISTRAL_ALLOWED:
+                if is_usable_model(m_id):
                     result.append(format_mistral_model(m_id))
             return result
     except Exception as e:
@@ -208,7 +264,7 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, Any]:
 
     gemini_models = fetch_gemini_models()
     groq_models = fetch_groq_models()
-    mistral_models = fetch_mistral_models()
+    # Mistral is temporarily disabled from the model list
 
     providers = []
     if gemini_models:
@@ -225,19 +281,18 @@ def get_available_models(force_refresh: bool = False) -> Dict[str, Any]:
             "icon": ICONS["groq"],
             "models": groq_models
         })
-    if mistral_models:
-        providers.append({
-            "id": "mistral",
-            "name": "Mistral AI",
-            "icon": ICONS["mistral"],
-            "models": mistral_models
-        })
+
+    default_provider = "auto"
+    default_model = "auto"
+    if providers and providers[0].get("models") and len(providers[0]["models"]) > 0:
+        default_provider = providers[0]["id"]
+        default_model = providers[0]["models"][0]["id"]
 
     data = {
         "providers": providers,
         "default": {
-            "provider": "auto",
-            "model": "auto"
+            "provider": default_provider,
+            "model": default_model
         }
     }
 
